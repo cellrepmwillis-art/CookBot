@@ -18,3 +18,10 @@ export function nextReset(date = new Date()) {
   if (next <= date) next.setDate(next.getDate() + 1);
   return next;
 }
+
+// The day before a day key: "2026-03-01" -> "2026-02-28".
+export function previousDay(key) {
+  const [y, m, d] = key.split("-").map(Number);
+  const date = new Date(y, m - 1, d - 1, 12);
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}

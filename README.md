@@ -15,6 +15,7 @@ A calorie counter that runs on your phone. Type what you ate or drank the way yo
 - **What it knows:** about 8,200 USDA foods, 60,000 packaged products from Open Food Facts (fairlife, Core Power, Barebells, Premier Protein, Quest, Thrive Market and many more), lattes and coffee drinks, and about 30 everyday meals like a turkey sandwich, a burrito bowl or cereal with milk.
 - **Barcode scanning:** tap **Scan a barcode** and the product is logged. About 86,000 barcodes are built in, so it works offline. Unknown products offer an optional free lookup on Open Food Facts, which sends only the barcode number.
 - **Optional photo estimates:** with your own Anthropic API key, a photo is estimated and logged. This is the only feature that costs money, a few cents per photo.
+- **Streak:** like Duolingo, a 🔥 streak counts the days in a row you finished at or under your goal, with the calories you stayed under across the streak and your best streak. Each day is judged when it ends at 3am. Going over the goal, or a day with nothing logged, starts the streak again. The first time you open the app on a new day, a banner says how the last one went. A small summary of every day (calories and goal) is kept indefinitely for this.
 - **No accounts and no syncing with other apps.** Your goal, food log and API key are stored only in your browser's local storage. The app keeps 30 days of entries.
 
 ## Food data
@@ -57,6 +58,7 @@ python3 -m http.server 8000
 | `index.html`, `styles.css` | The single screen and settings dialog |
 | `app.js` | Logging, totals, photo resizing, local storage |
 | `day.js` | The 3am day boundary |
+| `streak.js` | The streak and the morning recap |
 | `foods.js`, `foods.json` | Offline food search and the USDA food list |
 | `resolve.js` | Turns typed text into logged calories, picking the closest foods |
 | `modifiers.js`, `lookup.js` | Understanding "meat only", "no bun", "extra shot", counts, sizes, lists and nicknames |
@@ -68,4 +70,4 @@ python3 -m http.server 8000
 | `vendor/anthropic-sdk-0.131.0.js` | The Anthropic TypeScript SDK, bundled into one file |
 | `vendor/zxing-0.23.0.js` | The ZXing barcode reader (Apache License 2.0), bundled into one file |
 
-Tests for the day boundary, food search, modifiers, typed orders, branded products and barcodes: `node --test`
+Tests for the day boundary, streak, food search, modifiers, typed orders, branded products and barcodes: `node --test`

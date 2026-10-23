@@ -17,6 +17,11 @@
   </header>
 
   <main>
+    <section id="recap" class="recap card" hidden>
+      <p id="recap-text"></p>
+      <button id="recap-close" class="remove" type="button" aria-label="Dismiss">✕</button>
+    </section>
+
     <section class="summary card" aria-live="polite">
       <div class="ring" id="ring">
         <div class="ring-inner">
@@ -28,6 +33,8 @@
         <div><span class="muted">Goal</span> <strong id="goal">0</strong></div>
         <div><span class="muted">Eaten</span> <strong id="eaten">0</strong></div>
         <div class="muted small" id="reset-info"></div>
+        <div class="streak" id="streak"></div>
+        <div class="muted small" id="streak-detail"></div>
       </div>
     </section>
 

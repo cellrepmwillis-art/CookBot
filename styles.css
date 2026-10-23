@@ -173,3 +173,10 @@ dialog::backdrop { background: rgb(0 0 0 / 0.5); }
 .scan-guide { position: absolute; inset: 30% 8%; border: 3px solid rgb(255 255 255 / 0.9); border-radius: 10px; box-shadow: 0 0 0 999px rgb(0 0 0 / 0.35); }
 .scan-actions { display: grid; gap: 8px; margin-top: 8px; }
 .scan-actions .link-btn { text-align: center; cursor: pointer; }
+
+.streak { font-weight: 700; margin-top: 4px; }
+.recap { display: flex; align-items: flex-start; gap: 8px; border-color: var(--accent); }
+.recap.over { border-color: var(--over); }
+.recap p { margin: 0; flex: 1; }
+.recap .remove { border: none; background: none; color: var(--muted); padding: 2px 6px; }
+.recap[hidden] { display: none; }
