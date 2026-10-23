@@ -168,6 +168,10 @@ const KNOWN_WORDS = [
   "only", "just", "without", "hold", "minus", "add", "meat", "bun", "sauce", "protein", "style", "bunless",
   "dozen", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "twenty",
   "piece", "pieces", "pc", "pcs", "count", "kids", "kid", "iced", "hot", "cal", "cals", "calories", "kcal",
+  // Measures and amounts ("tablespoon" isn't "table spoon").
+  "tablespoon", "tablespoons", "teaspoon", "teaspoons", "tbsp", "tsp", "cups", "bowls", "glasses", "scoop", "scoops",
+  "serving", "servings", "drizzle", "splash", "dollop", "sprinkle", "spoonful", "squirt", "pat", "handful",
+  "third", "thirds", "quarter", "quarters", "skinless",
 ].filter((w) => w.length >= 2);
 
 // Edit distance with adjacent swaps ("tendres"), giving up past `max`.

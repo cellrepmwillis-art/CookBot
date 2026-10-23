@@ -182,3 +182,13 @@ test("restaurant drinks: the drink, not a sauce from the same place; size words 
   assert.ok(total("iced tea") < 10);
   assert.ok(total("large fries") > total("medium fries"));
 });
+
+test("a measure with no number means one of it", { skip: !hasBranded && "needs branded.json" }, () => {
+  // "tablespoon peter pan peanut butter" once logged the 2-tbsp label serving (206). Label: ~95 per tbsp.
+  const r = resolve("tablespoon peter pan peanut butter");
+  assert.ok(r.total >= 85 && r.total <= 110, `${r.total}`);
+  near(total("2 tablespoons peter pan peanut butter"), 2 * r.total);
+  assert.ok(total("a tablespoon of peanut butter") < 110);
+  assert.match(names("can of coke")[0], /cola/);
+  assert.match(resolve("cup of coffee").items[0].portion, /1 cup/);
+});

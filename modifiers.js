@@ -129,10 +129,12 @@ export function parseQuery(query) {
   }
   // "16 oz", "6 inch" pick a portion (see lookup.js), so they aren't searched for.
   q = q.replace(new RegExp(String.raw`\b\d+(?:\.\d+)?\s*-?\s*${UNITS}`, "g"), " ");
-  // "2 cups rice", "3 slices pizza": the measure picks the portion.
+  // "2 cups rice", "3 slices pizza", and with no number "tablespoon of peanut
+  // butter" or "a cup of coffee" (one of the measure): it picks the portion.
   let unit = null;
-  const measure = counted && q.match(new RegExp(`^\\s*(${HOUSEHOLD})\\b`));
+  const measure = q.match(new RegExp(`^\\s*(${HOUSEHOLD})\\b`));
   if (measure) {
+    counted = true;
     unit = measure[1].replace(/(es|s)$/, "").replace(/^tablespoon$/, "tbsp").replace(/^teaspoon$/, "tsp");
     q = q.slice(measure.index + measure[0].length);
     q = q.replace(/^\s*of\b/, " ");
