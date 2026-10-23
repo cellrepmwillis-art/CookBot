@@ -1,12 +1,13 @@
 import { dayKey, nextReset, previousDay } from "./day.js";
 import { streak, recap } from "./streak.js";
+import { proteinTarget, AIMS } from "./protein.js";
 import { loadFoods, addFoods, findFood, findByBarcode } from "./foods.js";
 import { applyModifiers } from "./modifiers.js";
 import { resolve, planItem } from "./resolve.js";
 import { barcodeKeys, startScanner, decodePhoto, lookupOnline } from "./barcode.js";
 
 // Shown at the bottom of Settings, to check which version a phone is running.
-const VERSION = "2026-10-23 · 6:30 PM";
+const VERSION = "2026-10-23 · 7:00 PM";
 const STORAGE_KEY = "cookbot";
 const KEEP_DAYS = 30;
 const DEFAULT_GOAL = 2000;
@@ -21,7 +22,8 @@ function load() {
   // days: { eaten, goal } for every day with anything logged, kept for good
   // (entries are only kept 30 days), for the streak. lastDay: the day the app
   // was last open, for the morning recap.
-  const defaults = { goal: DEFAULT_GOAL, apiKey: "", entries: [], myFoods: [], days: {}, lastDay: null };
+  // profile: { sex, age, heightIn, weightLb, aim } for the protein goal.
+  const defaults = { goal: DEFAULT_GOAL, apiKey: "", entries: [], myFoods: [], days: {}, lastDay: null, profile: {} };
   try {
     const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (data) return { ...defaults, ...data };
@@ -85,12 +87,16 @@ function render() {
 
 // ---- Macros ----
 
+// "Protein 85 / 100 g": red until the day's protein goal is reached, then green.
 function renderMacros(entries) {
   const known = entries.filter((e) => e.macros);
-  $("macros").hidden = !known.length;
-  if (!known.length) return;
+  const target = proteinTarget(state.profile);
+  $("macros").hidden = !known.length && !target;
   const sum = (key) => Math.round(known.reduce((total, e) => total + e.macros[key], 0));
-  $("macros").textContent = `Protein ${sum("protein")} g · Carbs ${sum("carbs")} g · Fat ${sum("fat")} g`;
+  const protein = document.createElement("span");
+  protein.textContent = target ? `Protein ${sum("protein")} / ${target} g` : `Protein ${sum("protein")} g`;
+  if (target) protein.className = sum("protein") >= target ? "protein-met" : "protein-under";
+  $("macros").replaceChildren(protein, ` · Carbs ${sum("carbs")} g · Fat ${sum("fat")} g`);
 }
 
 // Entries logged before macros were tracked: worked out again from the
@@ -470,9 +476,39 @@ $("estimate-btn").addEventListener("click", async () => {
 
 $("version").textContent = `Version ${VERSION}`;
 
+for (const [value, { label, perKg }] of Object.entries(AIMS)) $("aim-input").add(new Option(`${label} (${perKg} g/kg)`, value));
+
+// The profile as typed in Settings.
+function profileFromForm() {
+  const feet = Number($("feet-input").value);
+  const inches = Number($("inches-input").value);
+  return {
+    sex: $("sex-input").value,
+    age: Number($("age-input").value) || null,
+    heightIn: feet || inches ? feet * 12 + inches : null,
+    weightLb: Number($("weight-input").value) || null,
+    aim: $("aim-input").value,
+  };
+}
+
+function showProteinGoal() {
+  const target = proteinTarget(profileFromForm());
+  $("protein-goal").textContent = target ? `Daily protein goal: ${target} g` : "Add your weight to get a daily protein goal.";
+}
+
+$("settings-form").addEventListener("input", showProteinGoal);
+
 function openSettings() {
+  const p = state.profile;
   $("goal-input").value = state.goal;
   $("key-input").value = state.apiKey;
+  $("sex-input").value = p.sex ?? "";
+  $("age-input").value = p.age ?? "";
+  $("feet-input").value = p.heightIn ? Math.floor(p.heightIn / 12) : "";
+  $("inches-input").value = p.heightIn ? p.heightIn % 12 : "";
+  $("weight-input").value = p.weightLb ?? "";
+  $("aim-input").value = p.aim || "active";
+  showProteinGoal();
   $("settings").showModal();
 }
 
@@ -483,6 +519,7 @@ $("settings").addEventListener("close", () => {
   const goal = Math.round(Number($("goal-input").value));
   if (goal > 0) state.goal = goal;
   state.apiKey = $("key-input").value.trim();
+  state.profile = profileFromForm();
   save();
   render();
 });

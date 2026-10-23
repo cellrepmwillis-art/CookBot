@@ -97,6 +97,40 @@
         <span>Daily calorie goal</span>
         <input id="goal-input" type="number" min="1" step="1" inputmode="numeric" required>
       </label>
+      <fieldset class="profile">
+        <legend>You (for a daily protein goal)</legend>
+        <div class="profile-grid">
+          <label class="field">
+            <span>Sex</span>
+            <select id="sex-input">
+              <option value="">—</option>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Age</span>
+            <input id="age-input" type="number" min="1" max="120" step="1" inputmode="numeric">
+          </label>
+          <label class="field">
+            <span>Height (ft)</span>
+            <input id="feet-input" type="number" min="1" max="8" step="1" inputmode="numeric">
+          </label>
+          <label class="field">
+            <span>(in)</span>
+            <input id="inches-input" type="number" min="0" max="11" step="1" inputmode="numeric">
+          </label>
+          <label class="field">
+            <span>Weight (lb)</span>
+            <input id="weight-input" type="number" min="1" max="1000" step="any" inputmode="decimal">
+          </label>
+          <label class="field wide">
+            <span>Aim</span>
+            <select id="aim-input"></select>
+          </label>
+        </div>
+        <p class="muted small" id="protein-goal"></p>
+      </fieldset>
       <label class="field">
         <span>Anthropic API key (optional, only for photo estimates)</span>
         <input id="key-input" type="password" autocomplete="off" placeholder="sk-ant-...">
