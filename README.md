@@ -16,7 +16,7 @@ A calorie counter that runs on your phone. Type what you ate or drank the way yo
 - **Barcode scanning:** tap **Scan a barcode** and the product is logged. About 86,000 barcodes are built in, so it works offline. Unknown products offer an optional free lookup on Open Food Facts, which sends only the barcode number.
 - **Optional photo estimates:** with your own Anthropic API key, a photo is estimated and logged. This is the only feature that costs money, a few cents per photo.
 - **Protein, carbs and fat:** a running total for the day under the calorie ring. Each food's calories are split by its own makeup from USDA or Open Food Facts, so it's a rough guide to the balance, not label-exact. Typed numbers and photo estimates count toward calories only. Changing an entry's calories scales its split.
-- **Protein goal:** add your weight (and optionally height, age and sex) in Settings, and the protein total shows red until you reach the day's goal, then green. The goal goes by body weight: 0.8 g per kg for general health (the RDA), 1.2 g/kg if you're active or losing weight (the default), or 1.6 g/kg for building muscle. Past a BMI of 30 it uses the weight at a BMI of 30 for your height, and 65 and older get at least 1.0 g/kg.
+- **Protein and calorie goals:** add your weight (and optionally height, age and sex) in Settings and pick an aim: **Gain**, **Maintain** or **Cut**. The protein total shows red until you reach the day's goal, then green. Protein follows the classic bodybuilding rule of about 1 g per pound of body weight to gain or cut (protein stays high on a cut to keep muscle) and 0.8 g per pound to maintain. Past a BMI of 30 it uses the weight at a BMI of 30 for your height. With age, height and weight, Settings also suggests a calorie goal: maintenance from the Mifflin–St Jeor equation for someone moderately active (training 3 to 5 days a week), plus 300 to gain (a lean bulk) or minus 500 to cut (about 1 lb a week), never under 1,200 (women) or 1,500 (men). Tap **Use this** to make it your goal; otherwise your own goal stays.
 - **Streak:** like Duolingo, "🔥 5 days on track" counts the days in a row you finished at or under your goal. Each day is judged when it ends at 3am. Going over the goal, or a day with nothing logged, starts the streak again. The first time you open the app on a new day, a banner says how the last one went. A small summary of every day (calories and goal) is kept indefinitely for this.
 - **No accounts and no syncing with other apps.** Your goal, food log and API key are stored only in your browser's local storage. The app keeps 30 days of entries.
 
@@ -61,7 +61,7 @@ python3 -m http.server 8000
 | `app.js` | Logging, totals, photo resizing, local storage |
 | `day.js` | The 3am day boundary |
 | `streak.js` | The streak and the morning recap |
-| `protein.js` | The daily protein goal |
+| `profile.js` | The daily protein goal and calorie suggestion |
 | `foods.js`, `foods.json` | Offline food search and the USDA food list |
 | `resolve.js` | Turns typed text into logged calories, picking the closest foods |
 | `modifiers.js`, `lookup.js` | Understanding "meat only", "no bun", "extra shot", counts, sizes, lists and nicknames |

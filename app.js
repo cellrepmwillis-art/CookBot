@@ -1,13 +1,13 @@
 import { dayKey, nextReset, previousDay } from "./day.js";
 import { streak, recap } from "./streak.js";
-import { proteinTarget, AIMS } from "./protein.js";
+import { proteinTarget, calorieSuggestion, AIMS } from "./profile.js";
 import { loadFoods, addFoods, findFood, findByBarcode } from "./foods.js";
 import { applyModifiers } from "./modifiers.js";
 import { resolve, planItem } from "./resolve.js";
 import { barcodeKeys, startScanner, decodePhoto, lookupOnline } from "./barcode.js";
 
 // Shown at the bottom of Settings, to check which version a phone is running.
-const VERSION = "2026-10-23 · 7:00 PM";
+const VERSION = "2026-10-23 · 8:00 PM";
 const STORAGE_KEY = "cookbot";
 const KEEP_DAYS = 30;
 const DEFAULT_GOAL = 2000;
@@ -22,7 +22,7 @@ function load() {
   // days: { eaten, goal } for every day with anything logged, kept for good
   // (entries are only kept 30 days), for the streak. lastDay: the day the app
   // was last open, for the morning recap.
-  // profile: { sex, age, heightIn, weightLb, aim } for the protein goal.
+  // profile: { sex, age, heightIn, weightLb, aim } for the protein and calorie goals.
   const defaults = { goal: DEFAULT_GOAL, apiKey: "", entries: [], myFoods: [], days: {}, lastDay: null, profile: {} };
   try {
     const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -476,7 +476,10 @@ $("estimate-btn").addEventListener("click", async () => {
 
 $("version").textContent = `Version ${VERSION}`;
 
-for (const [value, { label, perKg }] of Object.entries(AIMS)) $("aim-input").add(new Option(`${label} (${perKg} g/kg)`, value));
+for (const [value, { label }] of Object.entries(AIMS)) $("aim-input").add(new Option(label, value));
+
+// Aims from before gain / maintain / cut.
+const OLD_AIMS = { muscle: "gain", general: "maintain", active: "maintain" };
 
 // The profile as typed in Settings.
 function profileFromForm() {
@@ -491,12 +494,26 @@ function profileFromForm() {
   };
 }
 
-function showProteinGoal() {
-  const target = proteinTarget(profileFromForm());
+function showGoals() {
+  const profile = profileFromForm();
+  const target = proteinTarget(profile);
   $("protein-goal").textContent = target ? `Daily protein goal: ${target} g` : "Add your weight to get a daily protein goal.";
+  const calories = calorieSuggestion(profile);
+  $("calorie-suggestion").hidden = !calories;
+  if (!calories) return;
+  const change = calories.goal - calories.maintenance;
+  const how = change ? ` (maintenance ${calories.maintenance.toLocaleString()} ${change > 0 ? "+" : "−"} ${Math.abs(change)})` : "";
+  $("calorie-text").textContent = `Suggested calorie goal: ${calories.goal.toLocaleString()}${how}.`;
+  $("use-calories").hidden = Number($("goal-input").value) === calories.goal;
 }
 
-$("settings-form").addEventListener("input", showProteinGoal);
+$("settings-form").addEventListener("input", showGoals);
+
+$("use-calories").addEventListener("click", () => {
+  const calories = calorieSuggestion(profileFromForm());
+  if (calories) $("goal-input").value = calories.goal;
+  showGoals();
+});
 
 function openSettings() {
   const p = state.profile;
@@ -507,8 +524,9 @@ function openSettings() {
   $("feet-input").value = p.heightIn ? Math.floor(p.heightIn / 12) : "";
   $("inches-input").value = p.heightIn ? p.heightIn % 12 : "";
   $("weight-input").value = p.weightLb ?? "";
-  $("aim-input").value = p.aim || "active";
-  showProteinGoal();
+  $("aim-input").value = OLD_AIMS[p.aim] ?? p.aim ?? "maintain";
+  if (!$("aim-input").value) $("aim-input").value = "maintain"; // an unknown aim selects nothing
+  showGoals();
   $("settings").showModal();
 }
 

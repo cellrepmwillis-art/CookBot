@@ -98,7 +98,7 @@
         <input id="goal-input" type="number" min="1" step="1" inputmode="numeric" required>
       </label>
       <fieldset class="profile">
-        <legend>You (for a daily protein goal)</legend>
+        <legend>You (for protein and calorie goals)</legend>
         <div class="profile-grid">
           <label class="field">
             <span>Sex</span>
@@ -130,6 +130,10 @@
           </label>
         </div>
         <p class="muted small" id="protein-goal"></p>
+        <p class="muted small suggestion" id="calorie-suggestion" hidden>
+          <span id="calorie-text"></span>
+          <button type="button" class="link-btn" id="use-calories">Use this</button>
+        </p>
       </fieldset>
       <label class="field">
         <span>Anthropic API key (optional, only for photo estimates)</span>
