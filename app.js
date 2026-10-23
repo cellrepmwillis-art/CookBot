@@ -1,19 +1,22 @@
 import { dayKey, nextReset } from "./day.js";
+import { loadFoods, searchFoods, quantityFrom, portionsFor, caloriesFor } from "./foods.js";
 
 const STORAGE_KEY = "cookbot";
 const KEEP_DAYS = 30;
 const DEFAULT_GOAL = 2000;
+const MAX_RECENT = 12;
 
 const $ = (id) => document.getElementById(id);
 
 // ---- Storage (everything lives in this browser's localStorage) ----
 
 function load() {
+  const defaults = { goal: DEFAULT_GOAL, apiKey: "", entries: [], recent: [] };
   try {
     const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (data) return { goal: DEFAULT_GOAL, apiKey: "", entries: [], ...data };
+    if (data) return { ...defaults, ...data };
   } catch {}
-  return { goal: DEFAULT_GOAL, apiKey: "", entries: [] };
+  return defaults;
 }
 
 function save() {
@@ -109,9 +112,76 @@ function scheduleReset() {
 }
 document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
 
+// ---- Food search ----
+
+const foodsReady = loadFoods().catch(() => null);
+
+function perPortionText(food) {
+  const [portion] = portionsFor(food);
+  return `${caloriesFor(food, portion.grams, 1).toLocaleString()} cal per ${portion.label}`;
+}
+
+function resultButton(food, quantity) {
+  const li = document.createElement("li");
+  const button = document.createElement("button");
+  const name = document.createElement("span");
+  name.className = "food-name";
+  name.textContent = food[0];
+  const info = document.createElement("span");
+  info.className = "muted small";
+  info.textContent = perPortionText(food);
+  button.append(name, info);
+  button.addEventListener("click", () => {
+    addFood(food, quantity);
+    $("search").value = "";
+    showSearchResults();
+    $("search").blur();
+  });
+  li.append(button);
+  return li;
+}
+
+async function showSearchResults() {
+  const query = $("search").value;
+  const hint = $("search-hint");
+  const list = $("search-results");
+
+  if (!query.trim()) {
+    // Empty box: offer recently logged foods for quick re-adding.
+    const focused = document.activeElement === $("search");
+    list.replaceChildren(...(focused ? state.recent.map((food) => resultButton(food, 1)) : []));
+    hint.hidden = !(focused && state.recent.length);
+    hint.textContent = "Recent";
+    return;
+  }
+
+  if (!(await foodsReady)) {
+    hint.hidden = false;
+    hint.textContent = "Couldn't load the food list. Check your connection and reload.";
+    return;
+  }
+  if (query !== $("search").value) return; // a newer keystroke is already being handled
+
+  const results = searchFoods(query);
+  list.replaceChildren(...results.map((food) => resultButton(food, quantityFrom(query))));
+  hint.hidden = results.length > 0;
+  hint.textContent = "No matches. Try a simpler word, like \"chicken\" or \"soda\", or tap \"Enter calories yourself\".";
+}
+
+$("search").addEventListener("input", showSearchResults);
+$("search").addEventListener("focus", showSearchResults);
+$("search").addEventListener("blur", () => {
+  // Let a tap on a recent item land before the list hides.
+  setTimeout(() => { if (!$("search").value.trim()) showSearchResults(); }, 200);
+});
+
+function rememberRecent(food) {
+  state.recent = [food, ...state.recent.filter((f) => f[0] !== food[0])].slice(0, MAX_RECENT);
+}
+
 // ---- Photo handling ----
 
-let pending = null; // { image: {mediaType, base64}, thumb } or { manual: true }
+let pending = null; // { image: {mediaType, base64}, thumb } while a photo is being reviewed
 
 function loadImage(file) {
   return new Promise((resolve, reject) => {
@@ -132,6 +202,13 @@ function resizeToDataUrl(img, maxSide, quality) {
   return canvas.toDataURL("image/jpeg", quality);
 }
 
+$("photo-btn").addEventListener("click", (event) => {
+  if (state.apiKey) return; // the label opens the file picker
+  event.preventDefault();
+  alert("Photo estimates use your own Anthropic API key, which bills a few cents per photo. Add a key in Settings to use them. Searching foods is free.");
+  openSettings();
+});
+
 $("photo-input").addEventListener("change", async (event) => {
   const file = event.target.files[0];
   event.target.value = "";
@@ -143,37 +220,17 @@ $("photo-input").addEventListener("change", async (event) => {
       image: { mediaType: "image/jpeg", base64: full.split(",")[1] },
       thumb: resizeToDataUrl(img, 160, 0.7),
     };
-    openReview(full);
+    $("preview").src = full;
+    $("note").value = "";
+    $("estimate-btn").disabled = false;
+    setStatus("");
+    $("photo-step").hidden = false;
+    $("review").hidden = false;
+    $("review").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (err) {
     alert(err.message);
   }
 });
-
-$("manual-add").addEventListener("click", () => {
-  pending = { manual: true };
-  openReview(null);
-  showItems([{ name: "", portion: "", calories: 0 }], "");
-  $("items").querySelector("input")?.focus();
-});
-
-function openReview(previewSrc) {
-  $("review").hidden = false;
-  $("preview").hidden = !previewSrc;
-  if (previewSrc) $("preview").src = previewSrc;
-  $("note").parentElement.hidden = !previewSrc;
-  $("note").value = "";
-  $("estimate-btn").hidden = !previewSrc;
-  $("estimate-btn").disabled = false;
-  setStatus("");
-  $("result").hidden = true;
-  $("review").scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-function closeReview() {
-  pending = null;
-  $("review").hidden = true;
-  $("preview").removeAttribute("src");
-}
 
 function setStatus(text, isError = false) {
   $("status").textContent = text;
@@ -181,21 +238,17 @@ function setStatus(text, isError = false) {
 }
 
 $("estimate-btn").addEventListener("click", async () => {
-  if (!state.apiKey) {
-    setStatus("Add your Anthropic API key in Settings first.", true);
-    openSettings();
-    return;
-  }
   const button = $("estimate-btn");
   button.disabled = true;
-  $("result").hidden = true;
   setStatus("Looking at your photo… this can take a few seconds.");
   try {
     const { estimateCalories } = await import("./estimate.js");
     const result = await estimateCalories({ apiKey: state.apiKey, image: pending.image, note: $("note").value.trim() });
     if (!pending) return; // cancelled while waiting
-    setStatus(result.items.length ? "" : "No food or drink found. Add items manually if needed.");
-    showItems(result.items, result.notes);
+    setStatus(result.items.length ? "" : "No food or drink found. Search or enter items manually.");
+    result.items.forEach(addCustomItem);
+    $("ai-notes").textContent = result.notes || "";
+    showMeal();
   } catch (err) {
     setStatus(err.message || "Something went wrong. Please try again.", true);
   } finally {
@@ -203,16 +256,94 @@ $("estimate-btn").addEventListener("click", async () => {
   }
 });
 
-// ---- Editable estimate ----
+// ---- The meal being built ----
 
-function showItems(items, notes) {
-  $("items").replaceChildren(...items.map(itemRow));
-  $("ai-notes").textContent = notes || "";
+function showMeal() {
+  $("review").hidden = false;
   $("result").hidden = false;
   updateTotal();
 }
 
-function itemRow(item) {
+function closeMeal() {
+  pending = null;
+  $("review").hidden = true;
+  $("result").hidden = true;
+  $("photo-step").hidden = true;
+  $("preview").removeAttribute("src");
+  $("items").replaceChildren();
+  $("ai-notes").textContent = "";
+}
+
+function removeButton(li) {
+  const remove = document.createElement("button");
+  remove.className = "remove";
+  remove.setAttribute("aria-label", "Remove item");
+  remove.textContent = "✕";
+  remove.addEventListener("click", () => {
+    li.remove();
+    if (!$("items").children.length && !pending) closeMeal();
+    else updateTotal();
+  });
+  return remove;
+}
+
+function calorieInput(value) {
+  const cal = document.createElement("input");
+  cal.type = "number";
+  cal.className = "cal";
+  cal.min = "0";
+  cal.step = "1";
+  cal.inputMode = "numeric";
+  cal.value = value;
+  cal.setAttribute("aria-label", "Calories");
+  cal.addEventListener("input", updateTotal);
+  return cal;
+}
+
+// A food from the USDA list: pick how many and which portion, calories follow.
+function addFood(food, quantity = 1) {
+  const li = document.createElement("li");
+  li.food = food;
+  const portions = portionsFor(food);
+
+  const nameWrap = document.createElement("div");
+  nameWrap.className = "name-wrap";
+  const label = document.createElement("div");
+  label.className = "food-label";
+  label.textContent = food[0];
+
+  const amount = document.createElement("div");
+  amount.className = "amount";
+  const qty = document.createElement("input");
+  qty.type = "number";
+  qty.className = "qty";
+  qty.min = "0";
+  qty.step = "any";
+  qty.inputMode = "decimal";
+  qty.value = quantity;
+  qty.setAttribute("aria-label", "How many");
+  const select = document.createElement("select");
+  select.setAttribute("aria-label", "Portion");
+  portions.forEach((p, i) => select.add(new Option(p.label, i)));
+  amount.append(qty, select);
+  nameWrap.append(label);
+
+  const cal = calorieInput(0);
+  const recalc = () => {
+    cal.value = caloriesFor(food, portions[select.value].grams, Number(qty.value) || 0);
+    updateTotal();
+  };
+  qty.addEventListener("input", recalc);
+  select.addEventListener("change", recalc);
+
+  li.append(nameWrap, cal, removeButton(li), amount);
+  $("items").append(li);
+  recalc();
+  showMeal();
+}
+
+// A free-form item: from a photo estimate, or typed in by hand.
+function addCustomItem(item) {
   const li = document.createElement("li");
 
   const nameWrap = document.createElement("div");
@@ -225,37 +356,35 @@ function itemRow(item) {
   nameWrap.append(name);
   if (item.portion) {
     const portion = document.createElement("span");
-    portion.className = "muted small";
+    portion.className = "muted small portion";
     portion.textContent = item.portion;
     nameWrap.append(portion);
   }
 
-  const cal = document.createElement("input");
-  cal.type = "number";
-  cal.className = "cal";
-  cal.min = "0";
-  cal.step = "1";
-  cal.inputMode = "numeric";
-  cal.value = item.calories;
-  cal.setAttribute("aria-label", "Calories");
-  cal.addEventListener("input", updateTotal);
-
-  const remove = document.createElement("button");
-  remove.className = "remove";
-  remove.setAttribute("aria-label", "Remove item");
-  remove.textContent = "✕";
-  remove.addEventListener("click", () => { li.remove(); updateTotal(); });
-
-  li.append(nameWrap, cal, remove);
+  li.append(nameWrap, calorieInput(item.calories), removeButton(li));
+  $("items").append(li);
+  showMeal();
   return li;
 }
 
 function readItems() {
-  return [...$("items").children].map((li) => ({
-    name: li.querySelector(".name").value.trim(),
-    portion: li.querySelector(".small")?.textContent ?? "",
-    calories: Math.max(0, Math.round(Number(li.querySelector(".cal").value) || 0)),
-  }));
+  return [...$("items").children].map((li) => {
+    const calories = Math.max(0, Math.round(Number(li.querySelector(".cal").value) || 0));
+    if (li.food) {
+      const select = li.querySelector("select");
+      return {
+        name: li.food[0],
+        portion: `${li.querySelector(".qty").value} × ${select.options[select.selectedIndex].text}`,
+        calories,
+        food: li.food,
+      };
+    }
+    return {
+      name: li.querySelector(".name").value.trim(),
+      portion: li.querySelector(".portion")?.textContent ?? "",
+      calories,
+    };
+  });
 }
 
 function updateTotal() {
@@ -264,30 +393,32 @@ function updateTotal() {
   $("confirm-btn").disabled = total <= 0;
 }
 
-$("add-item").addEventListener("click", () => {
-  const row = itemRow({ name: "", portion: "", calories: 0 });
-  $("items").append(row);
-  row.querySelector("input").focus();
-  updateTotal();
+$("manual-add").addEventListener("click", () => {
+  addCustomItem({ name: "", portion: "", calories: "" }).querySelector("input").focus();
 });
 
-$("cancel-btn").addEventListener("click", closeReview);
+$("add-item").addEventListener("click", () => {
+  addCustomItem({ name: "", portion: "", calories: "" }).querySelector("input").focus();
+});
+
+$("cancel-btn").addEventListener("click", closeMeal);
 
 $("confirm-btn").addEventListener("click", () => {
   const items = readItems().filter((i) => i.calories > 0 || i.name);
   const total = items.reduce((sum, i) => sum + i.calories, 0);
   if (total <= 0) return;
+  items.filter((i) => i.food).forEach((i) => rememberRecent(i.food));
   const now = Date.now();
   state.entries.push({
     id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
     ts: now,
     day: dayKey(new Date(now)),
-    items,
+    items: items.map(({ food, ...rest }) => rest),
     total,
     thumb: pending?.thumb,
   });
   save();
-  closeReview();
+  closeMeal();
   render();
   window.scrollTo({ top: 0, behavior: "smooth" });
 });

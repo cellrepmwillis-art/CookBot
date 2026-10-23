@@ -32,26 +32,33 @@
     </section>
 
     <section class="card">
-      <label class="photo-btn" for="photo-input">
-        <span class="photo-icon" aria-hidden="true">📷</span>
-        <span>Snap or choose a photo</span>
+      <label class="search">
+        <span class="visually-hidden">Search foods and drinks</span>
+        <input id="search" type="search" placeholder="What did you eat or drink?" autocomplete="off" enterkeyhint="search">
       </label>
-      <input id="photo-input" type="file" accept="image/*" hidden>
-      <button id="manual-add" class="link-btn">or add calories manually</button>
+      <p id="search-hint" class="muted small" hidden></p>
+      <ul id="search-results" class="results"></ul>
+      <div class="secondary-actions">
+        <button id="manual-add" class="link-btn">Enter calories yourself</button>
+        <label id="photo-btn" class="link-btn" for="photo-input">📷 Estimate from a photo</label>
+        <input id="photo-input" type="file" accept="image/*" hidden>
+      </div>
     </section>
 
     <section id="review" class="card" hidden>
-      <img id="preview" alt="Your meal photo">
-      <label class="field">
-        <span>Anything the photo doesn't show? (optional)</span>
-        <input id="note" type="text" placeholder="e.g. large size, oat milk, ate half">
-      </label>
-      <button id="estimate-btn" class="primary">Estimate calories</button>
-      <p id="status" class="status" role="status"></p>
+      <div id="photo-step" hidden>
+        <img id="preview" alt="Your meal photo">
+        <label class="field">
+          <span>Anything the photo doesn't show? (optional)</span>
+          <input id="note" type="text" placeholder="e.g. large size, oat milk, ate half">
+        </label>
+        <button id="estimate-btn" class="primary">Estimate calories (uses your API key)</button>
+        <p id="status" class="status" role="status"></p>
+      </div>
 
       <div id="result" hidden>
-        <h2>Estimate</h2>
-        <p class="muted small">Adjust any number before adding.</p>
+        <h2>This meal</h2>
+        <p class="muted small">Search above to add more. Adjust any number before adding.</p>
         <ul id="items" class="items"></ul>
         <button id="add-item" class="link-btn">+ add an item</button>
         <p id="ai-notes" class="muted small"></p>
@@ -78,14 +85,15 @@
         <input id="goal-input" type="number" min="1" step="1" inputmode="numeric" required>
       </label>
       <label class="field">
-        <span>Anthropic API key</span>
+        <span>Anthropic API key (optional, only for photo estimates)</span>
         <input id="key-input" type="password" autocomplete="off" placeholder="sk-ant-...">
       </label>
       <p class="muted small">
-        Your key, goal and food log are stored only in this browser. When you ask for an estimate,
-        the photo is sent to the Anthropic API to analyze it, and nothing else leaves your device.
-        Get a key at console.anthropic.com.
+        Searching foods and entering calories is free and works offline. Your goal and food log
+        are stored only in this browser. Photo estimates are optional: they send the photo to the
+        Anthropic API using your own key from console.anthropic.com, which bills a few cents per photo.
       </p>
+      <p class="muted small">Food data: USDA National Nutrient Database for Standard Reference, Release 28.</p>
       <div class="row">
         <button value="cancel" formnovalidate>Cancel</button>
         <button value="save" class="primary">Save</button>
