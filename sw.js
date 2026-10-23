@@ -10,7 +10,6 @@ const SHELL = [
   "estimate.js",
   "foods.js",
   "foods.json",
-  "branded.json",
   "lookup.js",
   "modifiers.js",
   "manifest.webmanifest",
@@ -18,8 +17,15 @@ const SHELL = [
   "vendor/anthropic-sdk-0.131.0.js",
 ];
 
+// Cached when present; the app works without it.
+const OPTIONAL = ["branded.json"];
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()));
+  event.waitUntil(
+    caches.open(CACHE)
+      .then((cache) => cache.addAll(SHELL).then(() => Promise.all(OPTIONAL.map((url) => cache.add(url).catch(() => {})))))
+      .then(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener("activate", (event) => {
