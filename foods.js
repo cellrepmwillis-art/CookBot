@@ -251,6 +251,8 @@ function splitWord(word) {
 // Punctuation and numbers are kept.
 export function correctTypos(query) {
   if (!vocabulary) return query;
+  // A zero for the "o" in ounces: "7 0z", "120z" (12 oz).
+  query = query.replace(/(\d)\s*0(z|unces?)\b/gi, "$1 o$2");
   return query.replace(/[a-z]+/gi, (w) => {
     const word = w.toLowerCase();
     if (word.length >= 6 && (vocabulary.get(word) ?? 0) < TRUSTED_COUNT) {

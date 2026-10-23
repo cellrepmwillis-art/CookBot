@@ -206,3 +206,8 @@ test("a rough protein/carbs/fat split comes with each item", { skip: !hasBranded
   assert.ok(grams("two rotisserie chicken breasts").protein > 80);
   assert.equal(grams("snack 250"), null); // a typed number has no split
 });
+
+test("a zero typed for the o in oz: 7 0z small redbull is one 7 oz can", () => {
+  near(resolve("7 0z small redbull", []).total, resolve("7 oz small redbull", []).total);
+  near(resolve("120z redbull", []).total, resolve("12 oz redbull", []).total);
+});
