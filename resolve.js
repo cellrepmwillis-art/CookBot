@@ -94,9 +94,13 @@ function consensusItem(group, text) {
   // A size that was typed ("8 oz") wins; else the usual labeled serving.
   const servings = like.filter((plan) => plan.food[2].length).map((plan) => portionsFor(plan.food)[0].grams);
   // "small red bull": the smaller of the usual servings (an 8.4 oz can, not 12).
-  const grams = top.portion ? top.portion.grams : servings.length ? servingFor(servings, group.size) : portionsFor(top.food)[0].grams;
+  // "1 cup cottage cheese" when the top product's label only says "1 serving
+  // (113 g)": the cup size from the products whose labels give one ("0.5 cup
+  // (113 g)" makes a cup 226 g).
+  const perUnit = !top.portion && group.unit ? like.filter((plan) => plan.sized).map((plan) => plan.portion.grams) : [];
+  const grams = top.portion ? top.portion.grams : perUnit.length ? median(perUnit) : servings.length ? servingFor(servings, group.size) : portionsFor(top.food)[0].grams;
   const units = group.quantity * top.count;
-  const label = top.portion?.label ?? `1 serving (${Math.round(grams)} g)`;
+  const label = top.portion?.label ?? (perUnit.length ? `1 ${group.unit} (${Math.round(grams)} g)` : `1 serving (${Math.round(grams)} g)`);
   const shown = like.includes(top) ? top : like[0]; // named after a product that was averaged
   const calories = Math.round((density * grams * units) / 100);
   return { name: `${shown.name} (typical of ${like.length} similar)`, portion: `${amount(units)} × ${label}`, calories, food: shown.source, macros: macrosFor(shown.food, calories) };

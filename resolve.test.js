@@ -227,3 +227,16 @@ test("coffee with half and half is coffee plus the cream", () => {
   assert.equal(r.items.length, 2);
   assert.match(r.items[1].name, /half and half/i);
 });
+
+test("berries are a cup of mixed blueberries, strawberries and raspberries", () => {
+  assert.match(resolve("berries", []).items[0].name, /Berries, mixed/);
+  near(resolve("mixed berries", []).total, 66);
+  assert.match(resolve("goji berries", []).items[0].name, /goji/i);
+});
+
+test("a cup of cottage cheese is two half-cup servings", () => {
+  const half = resolve("cottage cheese", []).total;
+  near(resolve("1 cup cottage cheese", []).total, half * 2);
+  near(resolve("cup of cottage cheese", []).total, half * 2);
+  near(resolve("1 cup greek yogurt", []).total, 134);
+});
