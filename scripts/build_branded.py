@@ -69,6 +69,7 @@ def number(value):
         return None
 
 
+DRINK = re.compile(r"\b(shake|drink|milk|juice|soda|coffee|latte|tea|smoothie|kombucha|lemonade|water)\b", re.IGNORECASE)
 CORPORATE = re.compile(r"\b(inc|llc|corp|corporation|co|company|brands|ltd)\b\.?", re.IGNORECASE)
 # A parent company at the start of a product name: "Fair Oaks Farms Brands Inc. Fairlife, ..."
 COMPANY_PREFIX = re.compile(r"^[^,]{0,40}?\b(?:inc|llc|corp|ltd)\b\.?,?\s+", re.IGNORECASE)
@@ -119,6 +120,8 @@ def main(path):
         # The consumer brand, not the parent company ("Fair Oaks Farms Brands Inc.").
         brand = next((b for b in brands if not CORPORATE.search(b)), brands[0])
         named = any(norm(b) and norm(b) in norm(name) for b in brands)
+        if CORPORATE.search(brand) and len(name.split()) >= 2:
+            named = True  # "Fair Oaks Farms Brands Inc." adds nothing to "Fairlife, Purely Nutritious Milk"
         display = (name if named else f"{brand} {name}")[:90]
 
         portions = []
@@ -128,6 +131,12 @@ def main(path):
             if not re.match(r"^[\d./½¼¾]", label):
                 label = f"1 serving, {label}"
             portions.append([label, round(grams, 1)])
+            # A full-size drink over 130 kcal per 100 ml almost always means the
+            # per-serving number was typed in as per-100 ml (a 325 ml protein
+            # shake at "160" is 160 per bottle, not 520).
+            drink = re.search(r"\bml\b|fl\.? ?oz", label, re.IGNORECASE) or "Beverages" in row["categories"] or DRINK.search(name)
+            if grams >= 200 and kcal > 130 and drink:
+                kcal = kcal * 100 / grams
 
         scans = number(row["scans"]) or 0
         priority = any(is_priority(b) for b in brands)
