@@ -1,10 +1,26 @@
-import { searchFoods, closestFoods, findFood } from "./foods.js";
+import { searchFoods, closestFoods, findFood, portionsFor } from "./foods.js";
 import { parseQuery, applyModifiers } from "./modifiers.js";
 
 // Turns what someone typed into food choices, each with a plan saying how
 // modifiers like "meat only" or "no cheese" change it.
 //   { results: [plan], quantity, unmatched: [words nothing matched] }
+// "large iced latte", "medium fries": preselect that size when the food has it.
+const SIZE = /\b(small|medium|regular|large)\b/i;
+const SIZE_LABELS = { small: ["small"], medium: ["medium", "regular"], regular: ["regular", "medium"], large: ["large"] };
+
+function withSize(plan, size) {
+  if (!size || plan.portion) return plan;
+  const portion = portionsFor(plan.food).find((p) => SIZE_LABELS[size].some((w) => new RegExp(`\\b${w}\\b`, "i").test(p.label)));
+  return portion ? { ...plan, portion } : plan;
+}
+
 export function lookup(query, limit = 25) {
+  const parsed = lookupSized(query, limit);
+  const size = query.match(SIZE)?.[1].toLowerCase();
+  return { ...parsed, results: parsed.results.map((plan) => withSize(plan, size)) };
+}
+
+function lookupSized(query, limit) {
   const { text, fullText, quantity, modifiers } = parseQuery(query);
   const plain = (foods) => foods.map((food) => applyModifiers(food, [], findFood));
 
@@ -25,7 +41,7 @@ export function lookup(query, limit = 25) {
     seen.add(key);
     return true;
   });
-  return { results, quantity, unmatched };
+  return { results, quantity, unmatched: [...new Set(unmatched)] };
 }
 
 // Several foods at once: "chicken breast and rice", "coffee with milk, bagel".

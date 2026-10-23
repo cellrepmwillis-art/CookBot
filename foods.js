@@ -1,9 +1,9 @@
 // Offline food search over foods.json (USDA SR28, built by scripts/build_foods.py)
 // and branded.json (packaged products from Open Food Facts, built by
 // scripts/build_branded.py).
-// Each food is [name, kcal per 100 g, [[portion, grams], ...], common (0 or 1)],
-// and branded foods add a fifth item: their barcodes, space-separated, without
-// leading zeros.
+// Each food is [name, kcal per 100 g, [[portion, grams], ...], common (0, 1 or 2)],
+// branded foods add a fifth item: their barcodes, space-separated, without
+// leading zeros, and foods the user entered themselves add a sixth: "mine".
 
 // Everyday words that USDA names differently.
 const SYNONYMS = {
@@ -25,6 +25,10 @@ const SYNONYMS = {
   "mcd's": "mcdonald",
   maccas: "mcdonald",
   bk: "burger king",
+  "espresso shots": "espresso",
+  "espresso shot": "espresso",
+  "shots of espresso": "espresso",
+  "shot of espresso": "espresso",
   barbell: "barebells",
   barbells: "barebells",
   "bare bells": "barebells",
@@ -44,7 +48,7 @@ const IGNORED = new Set([
   "a", "an", "the", "of", "and", "some", "my",
   "small", "medium", "large", "big", "regular", "extra",
   "cup", "cups", "glass", "can", "bottle", "mug", "bowl", "plate", "slice", "slices", "piece", "pieces",
-  "half", "one", "two", "three",
+  "half", "one", "two", "three", "single", "shot", "shots", "with", "plus",
 ]);
 
 let foods = null;
@@ -67,7 +71,11 @@ export function setFoods(list) {
 // Adds foods to the search, e.g. ones the user looked up online.
 export function addFoods(list) {
   for (const food of list) {
-    if (byName.has(food[0])) continue;
+    if (byName.has(food[0])) {
+      // The user's own foods update when re-entered with a new number.
+      if (food[5] === "mine") byName.get(food[0]).splice(0, Infinity, ...food);
+      continue;
+    }
     foods.push(food);
     index.push({ words: normalizedWords(food[0]), firstSegment: normalizedWords(food[0].split(",")[0]) });
     byName.set(food[0], food);
@@ -148,20 +156,21 @@ function rank(tokens, partial = false) {
     const { words: nameWords, firstSegment } = index[i];
     let score = 0;
     let hits = 0;
-    let matched = 0; // like hits, but "large" counts less than "fries"
+    let matched = 0; // like hits, weighted
     for (const token of tokens) {
       const s = tokenScore(nameWords, token);
       if (!s && !partial) break;
       if (s) {
         hits++;
-        matched += IGNORED.has(token) ? 0.5 : 1;
+        // "large" counts less than "fries", and "nespresso" less than "espresso".
+        matched += (IGNORED.has(token) ? 0.5 : 1) * (s === 1 ? 0.5 : 1);
       }
       score += s * 10 + (s && tokenScore(firstSegment, token) ? 15 : 0);
     }
     if (partial ? !hits : hits < tokens.length) continue;
     if (wordMatches(nameWords[0], tokens[0]) >= 2) score += 10;
     if (foods[i][2].length) score += 5;
-    if (foods[i][3]) score += 25;
+    if (foods[i][3]) score += 60 * foods[i][3]; // everyday foods first; 2 = first choice
     score -= nameWords.length; // prefer short, generic names
     results.push([score, i, matched]);
   }
@@ -171,8 +180,10 @@ function rank(tokens, partial = false) {
 // Portion choices for a food: its USDA household measures plus weight units.
 export function portionsFor(food) {
   const [, , portions] = food;
+  const own = portions.map(([label, grams]) => ({ label: label.replace(/\s+/g, " ").replace(/^\./, "0."), grams }));
+  if (food[5] === "mine") return own; // weights would be meaningless for "1 serving as you entered it"
   return [
-    ...portions.map(([label, grams]) => ({ label: label.replace(/\s+/g, " ").replace(/^\./, "0."), grams })),
+    ...own,
     { label: "1 oz", grams: 28.35 },
     { label: "100 g", grams: 100 },
     { label: "1 g", grams: 1 },

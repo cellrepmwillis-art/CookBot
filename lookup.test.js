@@ -74,3 +74,27 @@ test("foods with 'and' or 'with' in their name stay whole", () => {
   assert.ok(lookupMeal("macaroni and cheese").single);
   assert.ok(lookupMeal("whopper with cheese").single);
 });
+
+test("an espresso shot is a few calories, however it's phrased", () => {
+  for (const query of ["espresso", "single espresso shot", "shot of espresso", "sheetz espresso"]) {
+    const { name, calories } = topCalories(query);
+    assert.match(name, /espresso, restaurant-prepared$/, query);
+    assert.ok(calories <= 5, `${query}: ${calories}`);
+  }
+});
+
+test("lattes by milk, temperature and size", () => {
+  const regular = topCalories("iced oat milk latte");
+  assert.equal(regular.name, "Latte, iced, oat milk");
+  assert.ok(regular.calories > 110 && regular.calories < 160, `${regular.calories}`); // ~130 for 16 oz iced
+  assert.match(topCalories("large iced latte").plan.portion.label, /^Large/);
+  assert.ok(topCalories("hot whole milk latte").calories > regular.calories);
+  assert.equal(topCalories("iced oat milk latte with an extra shot").calories, regular.calories + 3);
+});
+
+test("a coffee order with an add-on splits into the drink and the shot", () => {
+  const { parts } = lookupMeal("sheetz iced oat milk latte plus one sheetz espresso shot");
+  assert.equal(parts.length, 2);
+  assert.equal(parts[0].results[0].name, "Latte, iced, oat milk");
+  assert.match(parts[1].results[0].name, /espresso/);
+});

@@ -14,7 +14,7 @@ const $ = (id) => document.getElementById(id);
 // ---- Storage (everything lives in this browser's localStorage) ----
 
 function load() {
-  // myFoods: products the user looked up online by barcode.
+  // myFoods: foods the user entered themselves or looked up online by barcode.
   const defaults = { goal: DEFAULT_GOAL, apiKey: "", entries: [], recent: [], myFoods: [] };
   try {
     const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -221,7 +221,8 @@ async function showSearchResults() {
   hint.hidden = results.length > 0 && !unmatched.length;
   hint.textContent = !results.length
     ? "No matches. Try a simpler word, like \"chicken\" or \"soda\", or tap \"Enter calories yourself\"."
-    : `Didn't recognize ${unmatched.map((w) => `"${w}"`).join(", ")}, so these are the closest matches.`;
+    : `Didn't recognize ${unmatched.map((w) => `"${w}"`).join(", ")}, so these are the closest matches. ` +
+      `For a specific order, tap "Enter calories yourself" once and it's saved to search next time.`;
 }
 
 $("search").addEventListener("input", showSearchResults);
@@ -230,6 +231,15 @@ $("search").addEventListener("blur", () => {
   // Let a tap on a recent item land before the list hides.
   setTimeout(() => { if (!$("search").value.trim()) showSearchResults(); }, 200);
 });
+
+// "Sheetz iced oat latte, 132": saved so searching "sheetz" finds it next time.
+function saveMyFood(name, calories) {
+  const food = [name, calories, [["1 serving (as you entered it)", 100]], 1, "", "mine"];
+  const key = name.toLowerCase();
+  state.myFoods = [food, ...state.myFoods.filter((f) => f[0].toLowerCase() !== key)];
+  addFoods([food]);
+  rememberRecent(findFood(name));
+}
 
 function rememberRecent(food) {
   state.recent = [food, ...state.recent.filter((f) => f[0] !== food[0])].slice(0, MAX_RECENT);
@@ -320,7 +330,7 @@ $("scan-online").addEventListener("click", async () => {
 
 $("scan-manual").addEventListener("click", () => {
   $("scanner").close();
-  addCustomItem({ name: "", portion: "", calories: "" }).querySelector("input").focus();
+  addCustomItem({ name: "", portion: "", calories: "" }, { manual: true }).querySelector("input").focus();
 });
 
 $("scan-close").addEventListener("click", () => $("scanner").close());
@@ -497,8 +507,11 @@ function addFood(plan, quantity = 1) {
 }
 
 // A free-form item: from a photo estimate, or typed in by hand.
-function addCustomItem(item) {
+// manual: typed in by the user (saved to My foods when named), rather than
+// from a photo estimate.
+function addCustomItem(item, { manual = false } = {}) {
   const li = document.createElement("li");
+  li.manual = manual;
 
   const nameWrap = document.createElement("div");
   nameWrap.className = "name-wrap";
@@ -537,6 +550,7 @@ function readItems() {
       name: li.querySelector(".name").value.trim(),
       portion: li.querySelector(".portion")?.textContent ?? "",
       calories,
+      manual: li.manual,
     };
   });
 }
@@ -548,11 +562,11 @@ function updateTotal() {
 }
 
 $("manual-add").addEventListener("click", () => {
-  addCustomItem({ name: "", portion: "", calories: "" }).querySelector("input").focus();
+  addCustomItem({ name: "", portion: "", calories: "" }, { manual: true }).querySelector("input").focus();
 });
 
 $("add-item").addEventListener("click", () => {
-  addCustomItem({ name: "", portion: "", calories: "" }).querySelector("input").focus();
+  addCustomItem({ name: "", portion: "", calories: "" }, { manual: true }).querySelector("input").focus();
 });
 
 $("cancel-btn").addEventListener("click", closeMeal);
@@ -562,12 +576,13 @@ $("confirm-btn").addEventListener("click", () => {
   const total = items.reduce((sum, i) => sum + i.calories, 0);
   if (total <= 0) return;
   items.filter((i) => i.food).forEach((i) => rememberRecent(i.food));
+  items.filter((i) => i.manual && i.name && i.calories > 0).forEach((i) => saveMyFood(i.name, i.calories));
   const now = Date.now();
   state.entries.push({
     id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
     ts: now,
     day: dayKey(new Date(now)),
-    items: items.map(({ food, ...rest }) => rest),
+    items: items.map(({ food, manual, ...rest }) => rest),
     total,
     thumb: pending?.thumb,
   });
