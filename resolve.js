@@ -1,6 +1,6 @@
 // Turns whatever was typed into calories, with no questions asked: the
 // closest food (or foods) is picked behind the scenes.
-import { caloriesFor, portionsFor, matchedWords, isRestaurantQuery, isRestaurantFood } from "./foods.js";
+import { caloriesFor, portionsFor, matchedWords, isRestaurantQuery, isRestaurantFood, correctTypos } from "./foods.js";
 import { lookupMeal } from "./lookup.js";
 
 // Calories for `units` of a plan (see modifiers.js), e.g. 1 Big Mac, meat only.
@@ -85,10 +85,12 @@ export function resolve(query, myFoods = []) {
   const mine = myFoods.find((f) => key(f[0]) === key(label));
   if (mine) return { label, items: [{ name: mine[0], portion: "", calories: mine[1] }], total: mine[1], exact: true };
 
-  const { single, parts } = lookupMeal(label, 25);
+  // Typos are fixed behind the scenes; the entry keeps the words as typed.
+  const text = correctTypos(label);
+  const { single, parts } = lookupMeal(text, 25);
   const items = parts
     ? parts.map((part) => consensusItem(part, part.text))
-    : single.results.length ? [consensusItem(single, label)] : [];
+    : single.results.length ? [consensusItem(single, text)] : [];
   if (!items.length) return null;
   return { label, items, total: items.reduce((sum, i) => sum + i.calories, 0), exact: false };
 }

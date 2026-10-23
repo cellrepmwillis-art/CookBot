@@ -35,6 +35,7 @@ COMMON = {
     "Bagels, plain, enriched, with calcium propionate (includes onion, poppy, sesame)",
     "Bananas, raw",
     "Pork, cured, bacon, cooked, baked",
+    "Chicken, broilers or fryers, wing, meat and skin, cooked, fried, flour",
     "Bread, white, commercially prepared, toasted",
     "Fast foods, submarine sandwich, cold cut on white bread with lettuce and tomato",
     "PIZZA HUT 14\" Cheese Pizza, Hand-Tossed Crust",
@@ -95,6 +96,7 @@ EXTRA_PORTIONS = {
     "Beverages, tea, black, brewed, prepared with tap water": [["1 cup (8 fl oz)", 237], ["1 mug (12 fl oz)", 355]],
     "Chicken, broilers or fryers, breast, meat only, cooked, roasted": [["1/2 breast, bone and skin removed", 86], ["3 oz", 85]],
     "Egg, whole, cooked, hard-boiled": [["1 large", 50]],
+    "Chicken, broilers or fryers, wing, meat and skin, cooked, fried, flour": [["1 wing", 32]],
     "Bread, white, commercially prepared, toasted": [["1 slice", 23], ["2 slices", 46]],
     "Water, bottled, generic": [["1 bottle (16.9 fl oz)", 500]],
 }

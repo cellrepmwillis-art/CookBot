@@ -23,9 +23,12 @@ function withSize(plan, size, measure, unit) {
 
 // One of a household measure: "2 tbsp (32 g)" gives a 1 tbsp portion of 16 g.
 function perUnit(labels, unit) {
-  for (const p of labels) {
-    const m = p.label.match(new RegExp(`^(\\d*\\.?\\d+)\\s*${unit}`, "i"));
-    if (m && Number(m[1]) > 0) return Number(m[1]) === 1 ? p : { label: `1 ${unit}`, grams: p.grams / Number(m[1]) };
+  // "2 tbsp (32 g)" first, then a count anywhere: "1 serving, 5 pieces".
+  for (const anchor of ["^", ""]) {
+    for (const p of labels) {
+      const m = p.label.match(new RegExp(`${anchor}(\\d*\\.?\\d+)\\s*${unit}`, "i"));
+      if (m && Number(m[1]) > 0) return Number(m[1]) === 1 ? p : { label: `1 ${unit}`, grams: p.grams / Number(m[1]) };
+    }
   }
   return labels.find((p) => new RegExp(`\\b${unit}`, "i").test(p.label));
 }
@@ -35,11 +38,14 @@ function perUnit(labels, unit) {
 const COUNTABLE = "piece|strip|tender|nugget|wing|slice|cookie|cracker|egg|waffle|pancake|bar|link|patty|patties|taco|roll|meatball|shrimp|biscuit|muffin|donut|doughnut|finger|fillet|filet|pretzel|sandwich|burger|item|bagel|tortilla|hash brown|dumpling|egg roll|pizza";
 const PIECES = new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(?:[a-z]+\\s+)?(${COUNTABLE})(?:e?s)?\\b`, "i");
 
+const MAX_PIECE_GRAMS = 450;
+
 function withCount(plan) {
   if (plan.portion || plan.count !== 1) return plan; // already a specific portion ("meat only", "large")
   const found = portionsFor(plan.food)
     .map((p) => ({ p, m: p.label.match(PIECES) }))
-    .filter(({ m }) => m && Number(m[1]) > 0)
+    // Over a pound isn't a piece: "1 pizza (1400 g)" is a whole pizza.
+    .filter(({ p, m }) => m && Number(m[1]) > 0 && p.grams / Number(m[1]) <= MAX_PIECE_GRAMS)
     .sort((a, b) => Number(a.m[1] !== "1") - Number(b.m[1] !== "1"))[0];
   if (!found) return plan;
   const n = Number(found.m[1]);

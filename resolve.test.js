@@ -84,3 +84,21 @@ test("exact picks aren't averaged", () => {
   assert.equal(names("banana")[0], "Bananas, raw");
   assert.equal(names("big mac meat only")[0], "McDonald's Big Mac, meat only");
 });
+
+test("typos and number words in a restaurant order", { skip: !hasBranded && "needs branded.json" }, () => {
+  // Typed on a phone: "four piece bpjangle supreme" once logged 5,269 cal (four supreme pizzas).
+  for (const query of ["four piece bpjangle supreme", "four piece bojangle supremes", "four piece bojangles supreme"]) {
+    const r = resolve(query);
+    assert.ok(r.total >= 450 && r.total <= 550, `${query}: ${r.total}`);
+    assert.equal(r.label, query); // the entry keeps the words as typed
+  }
+  near(total("a dozen wings"), 2 * total("6 wings"));
+  assert.equal(total("two eggs"), total("2 eggs"));
+});
+
+test("misspelled food words are corrected; real words are left alone", () => {
+  assert.equal(names("bananna")[0], "Bananas, raw");
+  assert.match(names("chiken tendrs")[0], /chicken/i);
+  assert.match(names("6 piece mcnuggets")[0], /McNUGGETS/); // not "corrected" to "nuggets"
+  assert.equal(resolve("qzx"), null); // nothing close: still nothing
+});

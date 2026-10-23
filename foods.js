@@ -68,7 +68,7 @@ const UNLISTED_RESTAURANTS = [
   "culvers", "raising cane's", "raising canes", "shake shack", "whataburger", "jack in the box", "chili's",
   "cava", "7-eleven", "7 eleven", "quiktrip", "royal farms", "casey's", "caseys", "buc-ee's", "bucees",
   "dutch bros", "tim hortons", "peet's", "arby's", "arbys", "sonic", "zaxby's", "zaxbys", "cookout", "cook out",
-  "bojangles", "bojangles'", "bojangle's", "bo jangles", "slim chickens", "huey magoo's", "guthrie's",
+  "bojangles", "bojangles'", "bojangle's", "bojangle", "bo jangles", "slim chickens", "huey magoo's", "guthrie's",
   // Their store products (capsules, bottles) aren't what's ordered in the café.
   "starbucks", "dunkin donuts", "dunkin'", "dunkin",
 ];
@@ -77,7 +77,7 @@ const UNLISTED = new RegExp(`(^|\\s)(${UNLISTED_RESTAURANTS.map((r) => r.replace
 // What some restaurants call their food, applied before their name is dropped:
 // a Bojangles "4-piece supreme" is four chicken tenders.
 const RESTAURANT_TERMS = [
-  [/\bbo ?jangle'?s'?\b/, { "supremes": "chicken tenders", "supreme": "chicken tenders", "bo-berry": "blueberry" }],
+  [/\bbo ?jangle'?s?'?(?=\s|$)/, { "supremes": "chicken tenders", "supreme": "chicken tenders", "bo-berry": "blueberry" }],
   [/\braising cane'?s\b|\bcanes\b/, { "fingers": "chicken tenders", "finger": "chicken tenders" }],
   [/\bzaxby'?s\b/, { "fingerz": "chicken tenders", "fingers": "chicken tenders" }],
   [/\bslim chickens\b|\bhuey magoo'?s\b|\bguthrie'?s\b/, { "tenders": "chicken tenders" }],
@@ -109,12 +109,14 @@ const words = (text) => text.toLowerCase().replace(/[^a-z0-9%]+/g, " ").trim().s
 const normalizedWords = (text) => words(text).map((w) => (w === "no" ? "without" : w));
 let byName = null;
 let byBarcode = null;
+let vocabulary = null; // word -> how many food names use it, for typo correction
 
 export function setFoods(list) {
   foods = [];
   index = [];
   byName = new Map();
   byBarcode = new Map();
+  vocabulary = new Map(KNOWN_WORDS.map((w) => [w, 1000]));
   addFoods(list);
 }
 
@@ -127,6 +129,9 @@ export function addFoods(list) {
       continue;
     }
     foods.push(food);
+    // USDA's names (no barcodes) are edited, so their words are trusted spellings.
+    const weight = food[4] === undefined ? TRUSTED_COUNT : 1;
+    for (const w of words(food[0])) if (w.length >= 3 && !/\d/.test(w)) vocabulary.set(w, (vocabulary.get(w) ?? 0) + weight);
     const firstSegment = normalizedWords(food[0].split(",")[0]);
     index.push({ words: normalizedWords(food[0]), firstSegment, required: firstSegment.filter((w) => !IGNORED.has(w) && w !== "without") });
     byName.set(food[0], food);
@@ -135,6 +140,78 @@ export function addFoods(list) {
 }
 
 export const findFood = (name) => byName?.get(name);
+
+// ---- Typo correction ----
+
+// Words the app understands besides food names: restaurants and their menu
+// words, synonyms, and the words of modifiers like "only" or "without".
+const KNOWN_WORDS = [
+  ...UNLISTED_RESTAURANTS.flatMap((r) => words(r)),
+  ...RESTAURANT_TERMS.flatMap(([, terms]) => Object.keys(terms).flatMap(words)),
+  ...Object.keys(SYNONYMS).flatMap(words),
+  ...IGNORED,
+  "only", "just", "without", "hold", "minus", "add", "meat", "bun", "sauce", "protein", "style", "bunless",
+  "dozen", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "twenty",
+  "piece", "pieces", "pc", "pcs", "count", "kids", "kid", "iced", "hot", "cal", "cals", "calories", "kcal",
+].filter((w) => w.length >= 2);
+
+// Edit distance with adjacent swaps ("tendres"), giving up past `max`.
+function distance(a, b, max) {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev2 = null;
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const row = [i];
+    let best = i;
+    for (let j = 1; j <= b.length; j++) {
+      let d = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (prev2 && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d = Math.min(d, prev2[j - 2] + 1);
+      row.push(d);
+      best = Math.min(best, d);
+    }
+    if (best > max) return max + 1;
+    prev2 = prev;
+    prev = row;
+  }
+  return prev[b.length];
+}
+
+const corrections = new Map();
+
+// A word used by fewer food names than this may itself be a typo in the
+// volunteer data ("chiken", "choclate"), so it isn't trusted as a spelling.
+const TRUSTED_COUNT = 3;
+
+// The closest known word to a misspelled one ("bpjangle" -> "bojangle"), or
+// the word itself if it's known or nothing is close. One letter off is
+// allowed for words of 4 to 6 letters, two for longer words.
+function correctWord(word) {
+  const own = vocabulary.get(word) ?? 0;
+  if (word.length < 4 || /\d/.test(word) || own >= TRUSTED_COUNT) return word;
+  if (corrections.has(word)) return corrections.get(word);
+  const max = word.length >= 7 ? 2 : 1;
+  let best = word;
+  let bestDistance = max + 1;
+  let bestCount = 0;
+  for (const [known, count] of vocabulary) {
+    // Only well-used words, and much more used than the typed one.
+    if (count < TRUSTED_COUNT || count < 5 * Math.max(own, 1) || Math.abs(known.length - word.length) > max) continue;
+    const d = distance(word, known, max);
+    if (d > max) continue;
+    if (d < bestDistance || (d === bestDistance && count > bestCount)) [best, bestDistance, bestCount] = [known, d, count];
+  }
+  corrections.set(word, best);
+  return best;
+}
+
+// The search with misspelled words corrected. Punctuation and numbers are kept.
+export function correctTypos(query) {
+  if (!vocabulary) return query;
+  return query.replace(/[a-z]+/gi, (w) => {
+    const fixed = correctWord(w.toLowerCase());
+    return fixed === w.toLowerCase() ? w : fixed;
+  });
+}
 
 // keys: from barcodeKeys() in barcode.js.
 export const findByBarcode = (keys) => keys.map((k) => byBarcode?.get(k)).find(Boolean);

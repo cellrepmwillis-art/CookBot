@@ -48,6 +48,8 @@ const EXTRA = /\b(?:extra|add|plus|with extra)\s+(?:an?\s+|one\s+)?([a-z]+)(?:\s
 const NO_BUN = /\b(?:protein[- ]style|lettuce[- ]wrap(?:ped)?|bunless|no[- ]bun)\b/g;
 const HALF = /\b(?:half(?: of)?(?: a| an| the)?|1\/2(?: a| an| of)?)\b/g;
 
+const NUMBER_WORDS = { two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, twenty: 20 };
+
 // Words after a number that make it a measurement, not a count ("16 oz").
 const UNITS = String.raw`(?:inch|inches|in|oz|ounce|ounces|g|grams?|lbs?|pounds?|ml|fl|percent|calories?|cals?|kcal)\b`;
 
@@ -57,6 +59,9 @@ const HOUSEHOLD = "cups?|tbsps?|tablespoons?|tsps?|teaspoons?|bowls?|slices?|pie
 // fullText keeps the modifier words, for foods USDA already lists that way.
 export function parseQuery(query) {
   let q = ` ${query.toLowerCase().replace(/[’']/g, "'")} `;
+  // "four piece", "a dozen wings": number words as digits.
+  q = q.replace(/\bhalf (?:a )?dozen\b/g, "6").replace(/\b(?:a )?dozen\b/g, "12")
+    .replace(new RegExp(`\\b(${Object.keys(NUMBER_WORDS).join("|")})\\b(?=\\s*-?\\s*[a-z])`, "g"), (w) => NUMBER_WORDS[w]);
   let quantity = 1;
   let counted = false; // the quantity is a count of pieces: "4-piece", "4 tenders"
   const pieces = q.match(/\b(\d{1,3})\s*-?\s*(?:piece|pieces|pc|pcs|ct|count)\b/);
