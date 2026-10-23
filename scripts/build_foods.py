@@ -155,6 +155,15 @@ def lattes(kcal_of):
     coffee = kcal_of["Beverages, coffee, brewed, prepared with tap water"]
     cups = [["Regular, 16 oz cup (about 12 fl oz coffee, the rest ice)", 355], ["Small, 12 oz cup", 266], ["Large, 20 oz cup", 444]]
     foods.append(["Coffee, iced, black", coffee, cups, 1])
+    # Restaurant sweet tea: brewed tea with about 15 g sugar per 8 fl oz;
+    # cups with ice hold less tea than their size.
+    tea = kcal_of["Beverages, tea, black, brewed, prepared with tap water"]
+    sugar = kcal_of["Sugars, granulated (sucrose)"]
+    per_cup = 237 * tea / 100 + 15 * sugar / 100
+    tea_cups = [["1 cup (8 fl oz)", 252], ["Small, 16 oz cup (about 12 fl oz, the rest ice)", 378],
+                ["Medium, 21 oz cup (about 16 fl oz)", 504], ["Large, 30 oz cup (about 22 fl oz)", 693]]
+    # Ranked first only when "sweet tea" is typed (common 3, like the meals).
+    foods.append(["Sweet tea, iced", round(per_cup / 252 * 100), tea_cups, 3])
     foods.append(["Cold brew coffee, black", coffee, cups, 1])
     return foods
 
@@ -229,6 +238,8 @@ def meals(kcal_of):
 
 
 LATER_PORTIONS = {
+    # USDA lists small and medium only; a large is about 154 g (McDonald's: ~150 g).
+    "Fast foods, potato, french fried in vegetable oil": [["1 serving, large", 154]],
     "Beverages, carbonated, cola, regular (soft drink, pop, soda)": [["1 bottle (20 fl oz)", 616]],
     "Alcoholic beverage, beer, regular, all": [["1 pint (16 fl oz)", 474]],
     "Alcoholic beverage, beer, light": [["1 pint (16 fl oz)", 472]],

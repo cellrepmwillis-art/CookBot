@@ -172,3 +172,13 @@ test("'X with Y': one food when it is one, else two; casual amounts", () => {
   assert.ok(total("oatmeal with honey") < 450, "a spoonful of honey, not a cup");
   near(total("a drizzle of olive oil"), total("2 tsp olive oil"));
 });
+
+test("restaurant drinks: the drink, not a sauce from the same place; size words pick sizes", () => {
+  // "one cup McDonald's sweet tea" once matched McDonald's Sweet 'N Sour Sauce.
+  assert.equal(names("one cup McDonald's sweet tea")[0], "Sweet tea, iced");
+  assert.ok(total("small mcdonalds sweet tea") < total("medium sweet tea"));
+  assert.ok(total("medium sweet tea") < total("large mcdonalds sweet tea"));
+  assert.equal(names("large mcdonalds sweet tea")[0], "Sweet tea, iced"); // not a product named "..., Large"
+  assert.ok(total("iced tea") < 10);
+  assert.ok(total("large fries") > total("medium fries"));
+});

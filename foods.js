@@ -48,6 +48,7 @@ const SYNONYMS = {
   steak: "beef",
   skinless: "meat only",
   drpepper: "dr pepper",
+  "iced tea": "tea", // unsweetened; "sweet tea" is the sweet one
   "dr. pepper": "dr pepper",
   // Cooked at home, these are all about the same as roasted chicken breast.
   "grilled chicken breast": "chicken breast",
@@ -359,7 +360,8 @@ function rank(tokens, partial = false, restaurant = false) {
     if (foods[i][4] === undefined) score += 8;
     if (MEAT_SUBSTITUTE.test(foods[i][0]) && !tokens.some((t) => MEAT_SUBSTITUTE.test(t))) score -= 30;
     // "bojangles tenders": restaurant tenders, not frozen ones from the store.
-    if (restaurant && RESTAURANT_FOOD.test(foods[i][0])) matched += 0.75;
+    // Only for the food itself: "mcdonalds sweet tea" isn't their sweet 'n sour sauce.
+    if (restaurant && RESTAURANT_FOOD.test(foods[i][0]) && (lastFoodWord < 0 || tokenScore(nameWords, tokens[lastFoodWord]))) matched += 0.75;
     results.push([score, i, matched]);
   }
   return results.sort((a, b) => b[2] - a[2] || b[0] - a[0]);

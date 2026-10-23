@@ -108,16 +108,19 @@ function lookupSized(query, limit) {
     if (exact.length) return { results: plain(exact), quantity, counted, countNoun, unit, unmatched: [], how: "exact" };
   }
 
+  // Size words pick a size (see withSize), so they aren't searched for:
+  // "large sweet tea" shouldn't find products named "..., Large".
+  const searched = text.replace(new RegExp(SIZE.source, "gi"), " ").replace(/\s+/g, " ").trim() || text;
   let how = "exact";
-  let foods = text ? searchFoods(text, limit, { strict: true }) : [];
-  if (text && !foods.length) {
+  let foods = searched ? searchFoods(searched, limit, { strict: true }) : [];
+  if (searched && !foods.length) {
     how = "loose";
-    foods = searchFoods(text, limit);
+    foods = searchFoods(searched, limit);
   }
   let unmatched = [];
-  if (text && !foods.length) {
+  if (searched && !foods.length) {
     how = "closest";
-    ({ foods, unmatched } = closestFoods(text, limit));
+    ({ foods, unmatched } = closestFoods(searched, limit));
   }
   // "Meat only" turns several burgers into the same patties; list each once.
   const seen = new Set();
