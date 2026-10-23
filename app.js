@@ -1,7 +1,7 @@
 import { dayKey, nextReset } from "./day.js";
 import { loadFoods, findFood, portionsFor, caloriesFor } from "./foods.js";
 import { applyModifiers } from "./modifiers.js";
-import { lookup } from "./lookup.js";
+import { lookupMeal } from "./lookup.js";
 
 const STORAGE_KEY = "cookbot";
 const KEEP_DAYS = 30;
@@ -148,12 +148,42 @@ function resultButton(plan, quantity) {
   button.append(name, info);
   button.addEventListener("click", () => {
     addFood(plan, quantity);
-    $("search").value = "";
-    showSearchResults();
-    $("search").blur();
+    clearSearch();
   });
   li.append(button);
   return li;
+}
+
+function clearSearch() {
+  $("search").value = "";
+  showSearchResults();
+  $("search").blur();
+}
+
+// For "chicken breast and rice": one button adding the best match for each
+// part, then the choices for each part.
+function mealResults(parts) {
+  const all = document.createElement("li");
+  const button = document.createElement("button");
+  button.className = "add-all";
+  const title = document.createElement("span");
+  title.textContent = `Add all ${parts.length}`;
+  const info = document.createElement("span");
+  info.className = "muted small";
+  info.textContent = parts.map((p) => p.results[0].name).join(" + ");
+  button.append(title, info);
+  button.addEventListener("click", () => {
+    parts.forEach((p) => addFood(p.results[0], p.quantity));
+    clearSearch();
+  });
+  all.append(button);
+
+  return [all, ...parts.flatMap((part) => {
+    const heading = document.createElement("li");
+    heading.className = "results-heading muted small";
+    heading.textContent = `Or choose for "${part.text}"`;
+    return [heading, ...part.results.slice(0, 5).map((plan) => resultButton(plan, part.quantity))];
+  })];
 }
 
 async function showSearchResults() {
@@ -178,7 +208,13 @@ async function showSearchResults() {
   }
   if (query !== $("search").value) return; // a newer keystroke is already being handled
 
-  const { results, quantity, unmatched } = lookup(query);
+  const { single, parts } = lookupMeal(query);
+  if (parts) {
+    list.replaceChildren(...mealResults(parts));
+    hint.hidden = true;
+    return;
+  }
+  const { results, quantity, unmatched } = single;
   list.replaceChildren(...results.map((plan) => resultButton(plan, quantity)));
   hint.hidden = results.length > 0 && !unmatched.length;
   hint.textContent = !results.length

@@ -1,4 +1,6 @@
-// Offline food search over foods.json (USDA SR28, built by scripts/build_foods.py).
+// Offline food search over foods.json (USDA SR28, built by scripts/build_foods.py)
+// and branded.json (packaged products from Open Food Facts, built by
+// scripts/build_branded.py).
 // Each food is [name, kcal per 100 g, [[portion, grams], ...], common (0 or 1)].
 
 // Everyday words that USDA names differently.
@@ -21,6 +23,10 @@ const SYNONYMS = {
   "mcd's": "mcdonald",
   maccas: "mcdonald",
   bk: "burger king",
+  barbell: "barebells",
+  barbells: "barebells",
+  "bare bells": "barebells",
+  "fair life": "fairlife",
   wendys: "wendy",
   pb: "peanut butter",
   "pb&j": "peanut butter",
@@ -56,7 +62,11 @@ export function setFoods(list) {
 export const findFood = (name) => byName?.get(name);
 
 export async function loadFoods() {
-  if (!foods) setFoods(await (await fetch("foods.json")).json());
+  if (!foods) {
+    const load = (url) => fetch(url).then((r) => (r.ok ? r.json() : []));
+    const [generic, branded] = await Promise.all([load("foods.json"), load("branded.json").catch(() => [])]);
+    setFoods(generic.concat(branded));
+  }
   return foods;
 }
 

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { setFoods, portionsFor, caloriesFor } from "./foods.js";
 import { parseQuery } from "./modifiers.js";
-import { lookup } from "./lookup.js";
+import { lookup, lookupMeal } from "./lookup.js";
 
 setFoods(JSON.parse(readFileSync(new URL("./foods.json", import.meta.url))));
 
@@ -59,4 +59,18 @@ test("nicknames and unknown words still find the food", () => {
   const { results, unmatched } = lookup("yummy big mac");
   assert.match(results[0].name, /BIG MAC/);
   assert.deepEqual(unmatched, ["yummy"]);
+});
+
+test("several foods in one search are split into parts", () => {
+  const { parts } = lookupMeal("chicken breast and white rice");
+  assert.equal(parts.length, 2);
+  assert.match(parts[0].results[0].name, /^Chicken.*breast/i);
+  assert.match(parts[1].results[0].name, /^Rice, white/);
+  assert.equal(lookupMeal("2 eggs, toast and coffee").parts.length, 3);
+  assert.equal(lookupMeal("2 eggs, toast and coffee").parts[0].quantity, 2);
+});
+
+test("foods with 'and' or 'with' in their name stay whole", () => {
+  assert.ok(lookupMeal("macaroni and cheese").single);
+  assert.ok(lookupMeal("whopper with cheese").single);
 });

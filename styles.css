@@ -132,6 +132,9 @@ button.primary { background: var(--accent); color: var(--accent-text); border-co
   gap: 2px;
 }
 .results li:last-child button { border-bottom: none; }
+.results .add-all { background: var(--accent); color: var(--accent-text); border-radius: 12px; border: none; padding: 12px 14px; margin: 4px 0 6px; font-weight: 600; }
+.results .add-all .muted { color: inherit; opacity: 0.85; font-weight: 400; }
+.results-heading { padding: 10px 2px 0; }
 .results .food-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 .secondary-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; margin-top: 8px; }
