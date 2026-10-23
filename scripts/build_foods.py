@@ -35,6 +35,8 @@ COMMON = {
     "Bagels, plain, enriched, with calcium propionate (includes onion, poppy, sesame)",
     "Bananas, raw",
     "Pork, cured, bacon, cooked, baked",
+    "Chicken, broiler, rotisserie, BBQ, breast meat and skin",
+    "Chicken, broiler, rotisserie, BBQ, breast meat only",
     "Chicken, broilers or fryers, wing, meat and skin, cooked, fried, flour",
     "Bread, white, commercially prepared, toasted",
     "Fast foods, submarine sandwich, cold cut on white bread with lettuce and tomato",
@@ -94,13 +96,23 @@ EXTRA_PORTIONS = {
     "Beverages, coffee, brewed, prepared with tap water": [["1 cup (8 fl oz)", 237], ["1 mug (12 fl oz)", 355], ["1 large (16 fl oz)", 474]],
     "Beverages, coffee, brewed, espresso, restaurant-prepared": [["1 shot (1 fl oz)", 30], ["2 shots (double)", 60]],
     "Beverages, tea, black, brewed, prepared with tap water": [["1 cup (8 fl oz)", 237], ["1 mug (12 fl oz)", 355]],
-    "Chicken, broilers or fryers, breast, meat only, cooked, roasted": [["1/2 breast, bone and skin removed", 86], ["3 oz", 85]],
+    # USDA's half breast (86 g) is from a 1 lb fryer; store-bought breasts are about twice that.
+    "Chicken, broilers or fryers, breast, meat only, cooked, roasted": [["1 breast (about 6 oz cooked)", 170], ["3 oz", 85]],
     "Egg, whole, cooked, hard-boiled": [["1 large", 50]],
+    # USDA's "1 breast" (384 g) is both sides; a "breast" to most people is one.
+    "Chicken, broiler, rotisserie, BBQ, breast meat and skin": [["1 breast (one side)", 192]],
+    "Chicken, broiler, rotisserie, BBQ, breast meat only": [["1 breast (one side)", 192]],
     "Chicken, broilers or fryers, wing, meat and skin, cooked, fried, flour": [["1 wing", 32]],
     "Bread, white, commercially prepared, toasted": [["1 slice", 23], ["2 slices", 46]],
     "Water, bottled, generic": [["1 bottle (16.9 fl oz)", 500]],
 }
-FIRST_CHOICE = {"Beverages, coffee, brewed, prepared with tap water", "Rice, white, long-grain, regular, enriched, cooked"}
+FIRST_CHOICE = {"Beverages, coffee, brewed, prepared with tap water", "Rice, white, long-grain, regular, enriched, cooked", "Chicken, broilers or fryers, breast, meat only, cooked, roasted"}
+
+# Clearer names where USDA's are hard to tell apart.
+RENAME = {
+    "Chicken, broiler, rotisserie, BBQ, breast meat and skin": "Chicken, rotisserie, breast with skin",
+    "Chicken, broiler, rotisserie, BBQ, breast meat only": "Chicken, rotisserie, breast, skinless (meat only)",
+}
 
 # Lattes: espresso plus milk. Milk per cup size is estimated so a 2% latte
 # matches typical coffee-shop numbers (about 130 cal for a 16 oz iced latte,
@@ -271,6 +283,8 @@ def main(src):
         sys.exit(f"Unknown foods in COMMON/EXTRA_PORTIONS: {sorted(missing)}")
     kcal_of = {f[0]: f[1] for f in foods}
     foods += lattes(kcal_of) + meals(kcal_of)
+    for f in foods:
+        f[0] = RENAME.get(f[0], f[0])
     foods.sort(key=lambda f: f[0].lower())
     json.dump(foods, sys.stdout, separators=(",", ":"))
 

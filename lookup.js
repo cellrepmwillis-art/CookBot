@@ -40,10 +40,26 @@ const PIECES = new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(?:[a-z]+\\s+)?(${COUNTABLE})(?
 
 const MAX_PIECE_GRAMS = 450;
 
-function withCount(plan) {
+// Words that name the same kind of piece ("4 tenders" counts strips).
+const SAME_PIECE = [["tender", "strip", "finger", "tenderloin"], ["piece", "pc", "count", "ct"]];
+const samePiece = (a, b) => a === b || SAME_PIECE.some((g) => g.includes(a) && g.includes(b));
+
+// countNoun: what the user counted ("breast" in "two chicken breasts"). A
+// portion counts only if it's that kind of piece, so two chicken breasts
+// aren't two deli slices. "4-piece" (countNoun "piece") counts any piece.
+function withCount(plan, countNoun) {
   if (plan.portion || plan.count !== 1) return plan; // already a specific portion ("meat only", "large")
-  const found = portionsFor(plan.food)
+  const labels = portionsFor(plan.food);
+  if (countNoun && countNoun !== "piece") {
+    const named = labels.find((p) => new RegExp(`\\b${countNoun}(?:e?s)?\\b`, "i").test(p.label));
+    if (named) {
+      const n = Number(named.label.match(/^(\d*\.?\d+)/)?.[1] ?? 1);
+      return { ...plan, portion: n === 1 ? named : { label: `1 ${countNoun}`, grams: named.grams / n }, countable: true };
+    }
+  }
+  const found = labels
     .map((p) => ({ p, m: p.label.match(PIECES) }))
+    .filter(({ m }) => !countNoun || countNoun === "piece" || !COUNTABLE.split("|").includes(countNoun) || samePiece(countNoun, m?.[2].toLowerCase()))
     // Over a pound isn't a piece: "1 pizza (1400 g)" is a whole pizza.
     .filter(({ p, m }) => m && Number(m[1]) > 0 && p.grams / Number(m[1]) <= MAX_PIECE_GRAMS)
     .sort((a, b) => Number(a.m[1] !== "1") - Number(b.m[1] !== "1"))[0];
@@ -56,20 +72,20 @@ function withCount(plan) {
 export function lookup(query, limit = 25) {
   const parsed = lookupSized(query, limit);
   const size = query.match(SIZE)?.[1].toLowerCase();
-  const results = parsed.results.map((plan) => withSize(plan, size, query.match(MEASURE), parsed.unit)).map((plan) => (parsed.counted ? withCount(plan) : plan));
+  const results = parsed.results.map((plan) => withSize(plan, size, query.match(MEASURE), parsed.unit)).map((plan) => (parsed.counted ? withCount(plan, parsed.countNoun) : plan));
   return { ...parsed, results };
 }
 
 // how: "exact" (every word matched a food name), "loose" (after dropping
 // filler words like "large") or "closest" (some words matched nothing).
 function lookupSized(query, limit) {
-  const { text, fullText, quantity, counted, unit, modifiers } = parseQuery(query);
+  const { text, fullText, quantity, counted, countNoun, unit, modifiers } = parseQuery(query);
   const plain = (foods) => foods.map((food) => applyModifiers(food, [], findFood));
 
   // USDA sometimes lists the modified version itself ("WHOPPER, no cheese").
   if (modifiers.length) {
     const exact = searchFoods(fullText, limit, { strict: true });
-    if (exact.length) return { results: plain(exact), quantity, counted, unit, unmatched: [], how: "exact" };
+    if (exact.length) return { results: plain(exact), quantity, counted, countNoun, unit, unmatched: [], how: "exact" };
   }
 
   let how = "exact";
@@ -91,7 +107,7 @@ function lookupSized(query, limit) {
     seen.add(key);
     return true;
   });
-  return { results, quantity, counted, unit, unmatched: [...new Set(unmatched)], how };
+  return { results, quantity, counted, countNoun, unit, unmatched: [...new Set(unmatched)], how };
 }
 
 const SEPARATOR = /\s*(?:,|\+|&|\band\b|\bplus\b)\s*/i;

@@ -46,6 +46,11 @@ const SYNONYMS = {
   ketchup: "catsup",
   oatmeal: "oats",
   steak: "beef",
+  skinless: "meat only",
+  // Cooked at home, these are all about the same as roasted chicken breast.
+  "grilled chicken breast": "chicken breast",
+  "baked chicken breast": "chicken breast",
+  "pan seared chicken breast": "chicken breast",
 };
 
 // Sizes, counts and filler words are chosen with the portion picker, and USDA
@@ -58,6 +63,11 @@ const IGNORED = new Set([
   "half", "one", "two", "three", "single", "shot", "shots", "with", "plus", "made", "w",
   "oz", "ounce", "ounces", "inch", "inches", "fl", "ml", "g", "grams", "lb", "lbs",
 ]);
+
+// Grocery stores: their names are on store-brand products, but "food lion
+// rotisserie chicken" means rotisserie chicken, not Food Lion's canned
+// chicken. They count for little when matching.
+const STORE_WORDS = new Set(["food", "lion", "walmart", "kroger", "publix", "aldi", "kirkland", "costco", "wegmans", "safeway", "meijer", "heb", "albertsons", "harris", "teeter", "giant", "hannaford", "winco", "sprouts", "lidl"]);
 
 // Restaurants whose menus aren't in the data. Their names only match sauces,
 // snacks and bottled drinks sold under the brand, so they're left out of every search:
@@ -188,6 +198,9 @@ const TRUSTED_COUNT = 3;
 function correctWord(word) {
   const own = vocabulary.get(word) ?? 0;
   if (word.length < 4 || /\d/.test(word) || own >= TRUSTED_COUNT) return word;
+  // Plurals of known words are known: "macs", "breasts".
+  const singular = word.replace(/(es|s)$/, "");
+  if (singular !== word && (vocabulary.get(singular) ?? 0) >= TRUSTED_COUNT) return word;
   if (corrections.has(word)) return corrections.get(word);
   const max = word.length >= 7 ? 2 : 1;
   let best = word;
@@ -287,7 +300,7 @@ export function closestFoods(query, limit = 25) {
 function rank(tokens, partial = false, restaurant = false) {
   if (!tokens.length) return [];
   const results = [];
-  const lastFoodWord = tokens.findLastIndex((t) => !IGNORED.has(t));
+  const lastFoodWord = tokens.findLastIndex((t) => !IGNORED.has(t) && !STORE_WORDS.has(t));
   for (let i = 0; i < foods.length; i++) {
     const { words: nameWords, firstSegment } = index[i];
     let score = 0;
@@ -302,7 +315,7 @@ function rank(tokens, partial = false, restaurant = false) {
         if (!IGNORED.has(token)) foodHits++;
         // "large" counts less than "fries", "nespresso" less than "espresso",
         // and the last word (usually the food: "wawa hoagie") more than the rest.
-        matched += (IGNORED.has(token) ? 0.5 : 1) * (s === 1 ? 0.5 : 1) * (t === lastFoodWord ? 1.5 : 1);
+        matched += (IGNORED.has(token) ? 0.5 : STORE_WORDS.has(token) ? 0.25 : 1) * (s === 1 ? 0.5 : 1) * (t === lastFoodWord ? 1.5 : 1);
       }
       score += s * 10 + (s && tokenScore(firstSegment, token) ? 15 : 0);
     }

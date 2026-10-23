@@ -111,3 +111,25 @@ test("espresso by the shot, even with coffee capsules and canned drinks in the d
     assert.ok(r.total >= 2 * shots && r.total <= 3 * shots, `${query}: ${r.total}`);
   }
 });
+
+test("counting uses the thing named: two chicken breasts aren't two deli slices", { skip: !hasBranded && "needs branded.json" }, () => {
+  // "two rotisserie chicken breasts" once logged 28 cal: 2 slices of packaged deli chicken.
+  for (const query of ["two rotisserie chicken breasts", "two food lion rotisserie chicken breasts"]) {
+    const r = resolve(query);
+    assert.equal(r.items[0].name, "Chicken, rotisserie, breast with skin", query);
+    assert.ok(r.total > 550 && r.total < 750, `${query}: ${r.total}`); // two sides with skin
+  }
+  assert.equal(names("rotisserie chicken breast skinless")[0], "Chicken, rotisserie, breast, skinless (meat only)");
+  assert.equal(names("rotisserie chicken breast no skin")[0], "Chicken, rotisserie, breast, skinless (meat only)");
+  assert.ok(total("2 chicken breasts") > 450, "two store-bought breasts, not two small fryer halves");
+  assert.equal(total("grilled chicken breast"), total("chicken breast"));
+});
+
+test("store names don't pull in store-brand products of a different food", { skip: !hasBranded && "needs branded.json" }, () => {
+  assert.doesNotMatch(names("food lion rotisserie chicken breast")[0], /food lion/i); // not its canned chicken
+  assert.match(names("food lion peanut butter")[0], /food lion/i); // but its own peanut butter, yes
+});
+
+test("plurals of known words aren't 'corrected'", { skip: !hasBranded && "needs branded.json" }, () => {
+  assert.match(names("2 big macs")[0], /Big Mac/);
+});

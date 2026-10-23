@@ -62,6 +62,8 @@ export function parseQuery(query) {
   // "four piece", "a dozen wings": number words as digits.
   q = q.replace(/\bhalf (?:a )?dozen\b/g, "6").replace(/\b(?:a )?dozen\b/g, "12")
     .replace(new RegExp(`\\b(${Object.keys(NUMBER_WORDS).join("|")})\\b(?=\\s*-?\\s*[a-z])`, "g"), (w) => NUMBER_WORDS[w]);
+  // "no skin", "without the skin": skinless.
+  q = q.replace(/\b(?:no|without|w\/o|minus)\s+(?:the\s+)?skin\b|\bskin\s+off\b/g, " skinless ");
   let quantity = 1;
   let counted = false; // the quantity is a count of pieces: "4-piece", "4 tenders"
   // "single espresso shot", "double shot of espresso": a number of shots.
@@ -131,7 +133,10 @@ export function parseQuery(query) {
   take(EXTRA, "extra");
   q = q.replace(/\b(?:only|just)\b/g, " ");
 
-  return { text: q.replace(/\s+/g, " ").trim(), fullText, quantity, counted, unit, modifiers };
+  const text = q.replace(/\s+/g, " ").trim();
+  // What's being counted: "piece" for "4-piece", else the last word ("breasts").
+  const countNoun = pieces ? "piece" : counted ? (text.split(" ").filter((w) => !/^(only|just|extra|large|small|medium|regular)$/.test(w)).pop() ?? "").replace(/(es|s)$/, "") : null;
+  return { text, fullText, quantity, counted, countNoun, unit, modifiers };
 }
 
 // What a set of modifiers does to one food. Returns
