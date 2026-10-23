@@ -9,6 +9,7 @@
 
 // Everyday words that USDA names differently.
 const SYNONYMS = {
+  halfnhalf: "half and half",
   coke: "cola",
   pepsi: "cola",
   soda: "carbonated",
@@ -253,6 +254,8 @@ export function correctTypos(query) {
   if (!vocabulary) return query;
   // A zero for the "o" in ounces: "7 0z", "120z" (12 oz).
   query = query.replace(/(\d)\s*0(z|unces?)\b/gi, "$1 o$2");
+  // One word, so "and" doesn't split it and "half" doesn't halve something.
+  query = query.replace(/\bhalf\s*(?:and|&|n|'n'?)\s*half\b/gi, "halfnhalf");
   return query.replace(/[a-z]+/gi, (w) => {
     const word = w.toLowerCase();
     if (word.length >= 6 && (vocabulary.get(word) ?? 0) < TRUSTED_COUNT) {

@@ -55,7 +55,8 @@ const FRACTIONS = [
   [new RegExp(String.raw`\bthree\s+quarters` + OF_A, "g"), 3 / 4],
   [new RegExp(String.raw`\b(?:a|one)\s+quarter\s+of(?:\s+(?:a|an|the))?\b`, "g"), 1 / 4],
 ];
-const HALF = /\b(?:half(?: of)?(?: a| an| the)?|1\/2(?: a| an| of)?)\b/g;
+// Not "half and half" (the cream).
+const HALF = /\b(?<!half (?:and|&|n) )(?:half(?! (?:and|&|n) half\b)(?: of)?(?: a| an| the)?|1\/2(?: a| an| of)?)\b/g;
 
 const NUMBER_WORDS = { two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, twenty: 20 };
 

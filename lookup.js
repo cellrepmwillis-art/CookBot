@@ -170,7 +170,10 @@ export function lookupMeal(query, limit = 25) {
   }
   const listed = SEPARATOR.test(query);
   // A list stays whole only when it's a food's actual name ("macaroni and cheese").
-  if (single.results.length && (listed ? single.how === "exact" : !single.unmatched.length)) return { single };
+  // "steak and vegetables" isn't a vegetable beef soup: a listed name with
+  // several words that weren't typed is a different food.
+  const listedWhole = single.how === "exact" && (isCurated(single.results[0]?.food ?? []) || extraWords(query, single.results[0].food) <= 2);
+  if (single.results.length && (listed ? listedWhole : !single.unmatched.length)) return { single };
   let texts = query.split(SEPARATOR).map((t) => t.trim()).filter(Boolean);
   // "salad with olive oil", "toast with butter": when the whole phrase isn't a
   // food, "with" adds one. ("latte with oat milk" matches whole, so it stays.)

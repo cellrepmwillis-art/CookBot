@@ -211,3 +211,19 @@ test("a zero typed for the o in oz: 7 0z small redbull is one 7 oz can", () => {
   near(resolve("7 0z small redbull", []).total, resolve("7 oz small redbull", []).total);
   near(resolve("120z redbull", []).total, resolve("12 oz redbull", []).total);
 });
+
+test("half and half is the cream, not half of something", () => {
+  assert.match(resolve("half and half", []).items[0].name, /half and half/i);
+  assert.match(resolve("half a turkey sandwich", []).items[0].name, /turkey sandwich/i);
+});
+
+test("a list whose only match is a different dish splits: steak and vegetables", () => {
+  assert.equal(resolve("steak and vegetables", []).items.length, 2);
+  assert.match(resolve("peanut butter and jelly sandwich", []).items[0].name, /jelly/i);
+});
+
+test("coffee with half and half is coffee plus the cream", () => {
+  const r = resolve("coffee with half and half", []);
+  assert.equal(r.items.length, 2);
+  assert.match(r.items[1].name, /half and half/i);
+});

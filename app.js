@@ -1,14 +1,14 @@
 import { dayKey, nextReset, previousDay } from "./day.js";
 import { streak, recap } from "./streak.js";
 import { proteinTarget, calorieSuggestion, AIMS } from "./profile.js";
-import { recommend } from "./recommend.js";
+import { recommend, DIETS } from "./recommend.js";
 import { loadFoods, addFoods, findFood, findByBarcode } from "./foods.js";
 import { applyModifiers } from "./modifiers.js";
 import { resolve, planItem } from "./resolve.js";
 import { barcodeKeys, startScanner, decodePhoto, lookupOnline } from "./barcode.js";
 
 // Shown at the bottom of Settings, to check which version a phone is running.
-const VERSION = "2026-10-23 · 9:30 PM";
+const VERSION = "2026-10-23 · 10:15 PM";
 const STORAGE_KEY = "cookbot";
 const KEEP_DAYS = 30;
 const DEFAULT_GOAL = 2000;
@@ -23,7 +23,8 @@ function load() {
   // days: { eaten, goal } for every day with anything logged, kept for good
   // (entries are only kept 30 days), for the streak. lastDay: the day the app
   // was last open, for the morning recap.
-  // profile: { sex, age, heightIn, weightLb, aim } for the protein and calorie goals.
+  // profile: { sex, age, heightIn, weightLb, aim, diet } for the protein and
+  // calorie goals and the Recommend line.
   const defaults = { goal: DEFAULT_GOAL, apiKey: "", entries: [], myFoods: [], days: {}, lastDay: null, profile: {} };
   try {
     const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -99,6 +100,8 @@ function renderSuggestion(entries, remaining) {
     eaten,
     proteinGoal: proteinTarget(state.profile),
     labels: entries.map((e) => e.label),
+    aim: state.profile.aim,
+    diet: state.profile.diet,
   });
   const label = document.createElement("b");
   label.textContent = "Recommend: ";
@@ -508,6 +511,8 @@ $("version").textContent = `Version ${VERSION}`;
 
 for (const [value, { label }] of Object.entries(AIMS)) $("aim-input").add(new Option(label, value));
 
+for (const [value, { label }] of Object.entries(DIETS)) $("diet-input").add(new Option(label, value));
+
 // Aims from before gain / maintain / cut.
 const OLD_AIMS = { muscle: "gain", general: "maintain", active: "maintain" };
 
@@ -521,6 +526,7 @@ function profileFromForm() {
     heightIn: feet || inches ? feet * 12 + inches : null,
     weightLb: Number($("weight-input").value) || null,
     aim: $("aim-input").value,
+    diet: $("diet-input").value,
   };
 }
 
@@ -556,6 +562,7 @@ function openSettings() {
   $("weight-input").value = p.weightLb ?? "";
   $("aim-input").value = OLD_AIMS[p.aim] ?? p.aim ?? "maintain";
   if (!$("aim-input").value) $("aim-input").value = "maintain"; // an unknown aim selects nothing
+  $("diet-input").value = DIETS[p.diet] ? p.diet : "standard";
   showGoals();
   $("settings").showModal();
 }

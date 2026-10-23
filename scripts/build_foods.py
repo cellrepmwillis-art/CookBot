@@ -92,6 +92,7 @@ COMMON = {
 # Everyday portions missing from ABBREV.txt, which lists at most two per food.
 # These are offered first; LATER_PORTIONS are offered after USDA's own.
 EXTRA_PORTIONS = {
+    "Sweet potato, cooked, baked in skin, flesh, without salt (Sweetpotato)": [["1 medium", 150]],
     "Beef, top sirloin, steak, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, broiled (URMIS #2237, Sirloin steak, Sirloin strip)": [["1 steak (6 oz cooked)", 170]],
     "Vegetables, mixed, frozen, cooked, boiled, drained, without salt": [["1 cup", 182]],
     "Fish, salmon, Atlantic, farmed, cooked, dry heat": [["1 fillet (6 oz)", 170]],
@@ -111,7 +112,7 @@ EXTRA_PORTIONS = {
     "Water, bottled, generic": [["1 bottle (16.9 fl oz)", 500]],
 }
 # A plain "steak", "vegetables" or "salmon" means these.
-FIRST_CHOICE = {"Beef, top sirloin, steak, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, broiled (URMIS #2237, Sirloin steak, Sirloin strip)", "Vegetables, mixed, frozen, cooked, boiled, drained, without salt", "Fish, salmon, Atlantic, farmed, cooked, dry heat", "Beverages, coffee, brewed, prepared with tap water", "Rice, white, long-grain, regular, enriched, cooked", "Chicken, broilers or fryers, breast, meat only, cooked, roasted"}
+FIRST_CHOICE = {"Nuts, almonds", "Sweet potato, cooked, baked in skin, flesh, without salt (Sweetpotato)", "Beef, top sirloin, steak, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, broiled (URMIS #2237, Sirloin steak, Sirloin strip)", "Vegetables, mixed, frozen, cooked, boiled, drained, without salt", "Fish, salmon, Atlantic, farmed, cooked, dry heat", "Beverages, coffee, brewed, prepared with tap water", "Rice, white, long-grain, regular, enriched, cooked", "Chicken, broilers or fryers, breast, meat only, cooked, roasted"}
 
 # Clearer names where USDA's are hard to tell apart.
 RENAME = {
