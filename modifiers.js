@@ -48,25 +48,57 @@ const EXTRA = /\b(?:extra|add|plus|with extra)\s+(?:an?\s+|one\s+)?([a-z]+)(?:\s
 const NO_BUN = /\b(?:protein[- ]style|lettuce[- ]wrap(?:ped)?|bunless|no[- ]bun)\b/g;
 const HALF = /\b(?:half(?: of)?(?: a| an| the)?|1\/2(?: a| an| of)?)\b/g;
 
+// Words after a number that make it a measurement, not a count ("16 oz").
+const UNITS = String.raw`(?:inch|inches|in|oz|ounce|ounces|g|grams?|lbs?|pounds?|ml|fl|percent|calories?|cals?|kcal)\b`;
+
+const HOUSEHOLD = "cups?|tbsps?|tablespoons?|tsps?|teaspoons?|bowls?|slices?|pieces?|glass(?:es)?|cans?|bottles?|scoops?|servings?|strips?|links?|patties|patty";
+
 // Splits a search into the food to look up, a quantity, and modifiers.
 // fullText keeps the modifier words, for foods USDA already lists that way.
 export function parseQuery(query) {
   let q = ` ${query.toLowerCase().replace(/[’']/g, "'")} `;
   let quantity = 1;
-  const lead = q.match(/^\s*(\d+(?:\.\d+)?|\.\d+|an?|one|two|three|four)\s/);
+  let counted = false; // the quantity is a count of pieces: "4-piece", "4 tenders"
+  const pieces = q.match(/\b(\d{1,3})\s*-?\s*(?:piece|pieces|pc|pcs|ct|count)\b/);
+  if (pieces) {
+    quantity = Number(pieces[1]);
+    counted = true;
+    q = q.slice(0, pieces.index) + " " + q.slice(pieces.index + pieces[0].length);
+  }
+  const lead = !pieces && q.match(new RegExp(`^\\s*(\\d+(?:\\.\\d+)?|\\.\\d+|an?|one|two|three|four)\\s(?!${UNITS})`));
   if (lead) {
     quantity = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4 }[lead[1]] ?? Number(lead[1]);
+    counted = !/^an?$/.test(lead[1]);
     q = q.slice(lead[0].length - 1);
   }
+  // "kfc 3 strips": a number before a food is a count, unless it's a
+  // measurement ("6 inch sub", "16 oz latte").
+  const middle = !pieces && !lead && q.match(new RegExp(`\\s(\\d{1,2})\\s+(?!${UNITS})(?=[a-z])`));
+  if (middle) {
+    quantity = Number(middle[1]);
+    counted = true;
+    q = q.slice(0, middle.index) + " " + q.slice(middle.index + middle[0].length);
+  }
   // "pizza 3": a small number at the end is a count too.
-  const tail = !lead && q.match(/\s(\d{1,2})\s*$/);
+  const tail = !pieces && !lead && !middle && q.match(/\s(\d{1,2})\s*$/);
   if (tail && Number(tail[1]) < 20) {
     quantity = Number(tail[1]);
+    counted = true;
     q = q.slice(0, tail.index) + " ";
   }
   if (HALF.test(q)) {
     quantity *= 0.5;
     q = q.replace(HALF, " ");
+  }
+  // "16 oz", "6 inch" pick a portion (see lookup.js), so they aren't searched for.
+  q = q.replace(new RegExp(String.raw`\b\d+(?:\.\d+)?\s*-?\s*${UNITS}`, "g"), " ");
+  // "2 cups rice", "3 slices pizza": the measure picks the portion.
+  let unit = null;
+  const measure = counted && q.match(new RegExp(`^\\s*(${HOUSEHOLD})\\b`));
+  if (measure) {
+    unit = measure[1].replace(/(es|s)$/, "").replace(/^tablespoon$/, "tbsp").replace(/^teaspoon$/, "tsp");
+    q = q.slice(measure.index + measure[0].length);
+    q = q.replace(/^\s*of\b/, " ");
   }
   const fullText = q.replace(/\bw\/o\b|\bno\b/g, "without").replace(/\s+/g, " ").trim();
 
@@ -87,7 +119,7 @@ export function parseQuery(query) {
   take(EXTRA, "extra");
   q = q.replace(/\b(?:only|just)\b/g, " ");
 
-  return { text: q.replace(/\s+/g, " ").trim(), fullText, quantity, modifiers };
+  return { text: q.replace(/\s+/g, " ").trim(), fullText, quantity, counted, unit, modifiers };
 }
 
 // What a set of modifiers does to one food. Returns

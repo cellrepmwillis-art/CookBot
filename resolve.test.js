@@ -9,6 +9,8 @@ const hasBranded = existsSync(new URL("./branded.json", import.meta.url));
 setFoods(read("./foods.json").concat(hasBranded ? read("./branded.json") : []));
 const total = (query) => resolve(query)?.total;
 const names = (query) => resolve(query)?.items.map((i) => i.name);
+// Equal up to rounding: 3 strips are rounded once, 1 strip times 3 three times.
+const near = (a, b) => assert.ok(Math.abs(a - b) <= 2, `${a} vs ${b}`);
 
 test("a long, casual order picks one drink with every detail applied", () => {
   const r = resolve("sheetz iced latte regular with an extra shot made with oat milk");
@@ -56,4 +58,29 @@ test("saved foods win for the same words", () => {
 test("nothing at all matching returns null", () => {
   assert.equal(resolve("qzx"), null);
   assert.equal(resolve("   "), null);
+});
+
+test("restaurant orders count pieces and average similar restaurants", { skip: !hasBranded && "needs branded.json" }, () => {
+  // Bojangles 4-piece Chicken Supremes: about 500 cal. Within 10%.
+  for (const query of ["bojangles 4-piece supreme", "4 piece bojangles tenders"]) {
+    const r = resolve(query);
+    assert.ok(r.total >= 450 && r.total <= 550, `${query}: ${r.total}`);
+    assert.match(r.items[0].name, /typical of \d+ similar/, query);
+  }
+  near(total("kfc 3 strips"), 3 * total("kfc 1 strip"));
+});
+
+test("counts are pieces; measurements pick a size; household measures pick a portion", () => {
+  assert.ok(total("6 piece mcnuggets") < 400, "6 nuggets, not 6 servings");
+  assert.equal(resolve("12 oz iced oat latte").items[0].portion.startsWith("1 × Small"), true);
+  assert.match(resolve("16 oz coffee").items[0].portion, /16 fl oz/);
+  near(total("2 tbsp peanut butter"), 2 * total("1 tbsp peanut butter"));
+  assert.ok(total("2 tbsp peanut butter") > 170 && total("2 tbsp peanut butter") < 210); // label: 190
+  near(total("2 cups rice"), 2 * total("1 cup rice"));
+});
+
+test("exact picks aren't averaged", () => {
+  assert.equal(names("sheetz iced latte regular with an extra shot made with oat milk")[0], "Latte, iced, oat milk, extra shot");
+  assert.equal(names("banana")[0], "Bananas, raw");
+  assert.equal(names("big mac meat only")[0], "McDonald's Big Mac, meat only");
 });

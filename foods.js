@@ -56,6 +56,7 @@ const IGNORED = new Set([
   "small", "medium", "large", "big", "regular", "extra",
   "cup", "cups", "glass", "can", "bottle", "mug", "bowl", "plate", "slice", "slices", "piece", "pieces",
   "half", "one", "two", "three", "single", "shot", "shots", "with", "plus", "made", "w",
+  "oz", "ounce", "ounces", "inch", "inches", "fl", "ml", "g", "grams", "lb", "lbs",
 ]);
 
 // Restaurants whose menus aren't in the data. Their names only match sauces,
@@ -66,11 +67,39 @@ const UNLISTED_RESTAURANTS = [
   "jimmy john's", "jimmy johns", "sweetgreen", "qdoba", "moe's", "panda express", "dairy queen", "culver's",
   "culvers", "raising cane's", "raising canes", "shake shack", "whataburger", "jack in the box", "chili's",
   "cava", "7-eleven", "7 eleven", "quiktrip", "royal farms", "casey's", "caseys", "buc-ee's", "bucees",
-  "dutch bros", "tim hortons", "peet's", "arby's", "arbys", "sonic", "zaxby's", "cookout", "cook out",
+  "dutch bros", "tim hortons", "peet's", "arby's", "arbys", "sonic", "zaxby's", "zaxbys", "cookout", "cook out",
+  "bojangles", "bojangles'", "bojangle's", "bo jangles", "slim chickens", "huey magoo's", "guthrie's",
   // Their store products (capsules, bottles) aren't what's ordered in the café.
   "starbucks", "dunkin donuts", "dunkin'", "dunkin",
 ];
 const UNLISTED = new RegExp(`(^|\\s)(${UNLISTED_RESTAURANTS.map((r) => r.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})(?=\\s|$)`, "gi");
+
+// What some restaurants call their food, applied before their name is dropped:
+// a Bojangles "4-piece supreme" is four chicken tenders.
+const RESTAURANT_TERMS = [
+  [/\bbo ?jangle'?s'?\b/, { "supremes": "chicken tenders", "supreme": "chicken tenders", "bo-berry": "blueberry" }],
+  [/\braising cane'?s\b|\bcanes\b/, { "fingers": "chicken tenders", "finger": "chicken tenders" }],
+  [/\bzaxby'?s\b/, { "fingerz": "chicken tenders", "fingers": "chicken tenders" }],
+  [/\bslim chickens\b|\bhuey magoo'?s\b|\bguthrie'?s\b/, { "tenders": "chicken tenders" }],
+];
+
+// Words that mean the same food: "strips", "tenders" and "fingers" are all
+// chicken tenders, so restaurant entries named either way are found.
+const ALTERNATIVES = [["tender", "tenders", "strip", "strips", "finger", "fingers", "tenderloins"]];
+const ALTERNATIVE_OF = new Map(ALTERNATIVES.flatMap((group) => group.map((w) => [w, group.join("|")])));
+
+// Restaurant food in the data: USDA's fast-food and restaurant entries and
+// the chains it lists. Ranked first when the user names a restaurant.
+const RESTAURANT_FOOD = /^(fast foods|restaurant,|applebee's|burger king|chick-fil-a|cracker barrel|denny's|kfc|mcdonald's|popeyes|wendy's|taco bell|subway|pizza hut|domino's|papa john's|little caesars|t\.g\.i\. friday's|olive garden|carrabba's|on the border)/i;
+const NAMED_RESTAURANT = /\b(fast food|restaurant|drive[- ]?thru|take ?out|mcdonald|burger king|wendy|kfc|popeyes|chick-fil-a|taco bell|subway|pizza hut|domino|papa john|little caesar|applebee|denny|cracker barrel|friday|olive garden)/i;
+
+// Whether a search names a restaurant, listed in the data or not.
+export function isRestaurantQuery(query) {
+  const q = ` ${query.toLowerCase()} `;
+  UNLISTED.lastIndex = 0;
+  return UNLISTED.test(q) || NAMED_RESTAURANT.test(q);
+}
+export const isRestaurantFood = (food) => RESTAURANT_FOOD.test(food[0]);
 
 let foods = null;
 let index = null;
@@ -120,13 +149,18 @@ export async function loadFoods() {
 }
 
 function expand(query, dropIgnored) {
-  let q = ` ${query.toLowerCase().trim()} `.replace(UNLISTED, " ").trim();
+  let q = ` ${query.toLowerCase().trim()} `;
+  for (const [restaurant, terms] of RESTAURANT_TERMS) {
+    if (!restaurant.test(q)) continue;
+    for (const [from, to] of Object.entries(terms)) q = q.replace(new RegExp(`\\b${from}\\b`, "g"), to);
+  }
+  q = q.replace(UNLISTED, " ").trim();
   for (const [from, to] of Object.entries(SYNONYMS)) {
     if (/[^a-z0-9]/.test(from) && q.includes(from)) q = q.replace(from, to); // phrases like "hot dog", "pb&j"
   }
   let tokens = words(q).filter((w) => !/^\d+$/.test(w));
   if (dropIgnored) tokens = tokens.filter((w) => !IGNORED.has(w));
-  return tokens.flatMap((w) => normalizedWords(SYNONYMS[w] ?? w));
+  return tokens.flatMap((w) => normalizedWords(SYNONYMS[w] ?? w)).map((w) => ALTERNATIVE_OF.get(w) ?? w);
 }
 
 // A query word matches a name word exactly or as a plural (best), at its start
@@ -140,6 +174,7 @@ function wordMatches(nameWord, token) {
 }
 
 function tokenScore(nameWords, token) {
+  if (token.includes("|")) return Math.max(...token.split("|").map((t) => tokenScore(nameWords, t)));
   // Also try the singular, so "eggs" finds "Egg, whole, ...".
   const singular = token.length > 3 && token.endsWith("s") ? token.slice(0, -1) : null;
   let best = 0;
@@ -152,8 +187,9 @@ function tokenScore(nameWords, token) {
 // strict: every word must match, including size words like "extra".
 export function searchFoods(query, limit = 25, { strict = false } = {}) {
   if (!foods) return [];
-  let results = rank(expand(query, false));
-  if (!results.length && !strict) results = rank(expand(query, true));
+  const restaurant = isRestaurantQuery(query);
+  let results = rank(expand(query, false), false, restaurant);
+  if (!results.length && !strict) results = rank(expand(query, true), false, restaurant);
   return results.slice(0, limit).map(([, i]) => foods[i]);
 }
 
@@ -162,7 +198,7 @@ export function searchFoods(query, limit = 25, { strict = false } = {}) {
 export function closestFoods(query, limit = 25) {
   if (!foods) return { foods: [], unmatched: [] };
   const tokens = expand(query, false);
-  const results = rank(tokens, true);
+  const results = rank(tokens, true, isRestaurantQuery(query));
   if (!results.length) return { foods: [], unmatched: tokens };
   const best = results[0][2];
   const top = results.filter((r) => r[2] === best).slice(0, limit);
@@ -171,7 +207,7 @@ export function closestFoods(query, limit = 25) {
   return { foods: top.map(([, i]) => foods[i]), unmatched };
 }
 
-function rank(tokens, partial = false) {
+function rank(tokens, partial = false, restaurant = false) {
   if (!tokens.length) return [];
   const results = [];
   const lastFoodWord = tokens.findLastIndex((t) => !IGNORED.has(t));
@@ -206,9 +242,18 @@ function rank(tokens, partial = false) {
       score += 60 * common; // everyday foods first; 2 = first choice
     }
     score -= nameWords.length; // prefer short, generic names
+    // "bojangles tenders": restaurant tenders, not frozen ones from the store.
+    if (restaurant && RESTAURANT_FOOD.test(foods[i][0])) matched += 0.75;
     results.push([score, i, matched]);
   }
   return results.sort((a, b) => b[2] - a[2] || b[0] - a[0]);
+}
+
+// The words of a search a food's name matches: foods with the same ones are
+// equally good matches, which resolve.js averages.
+export function matchedWords(query, food) {
+  const nameWords = normalizedWords(food[0]);
+  return expand(query, true).filter((t) => tokenScore(nameWords, t)).join(" ");
 }
 
 // Portion choices for a food: its USDA household measures plus weight units.

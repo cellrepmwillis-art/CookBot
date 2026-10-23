@@ -34,6 +34,7 @@ COMMON = {
     "Avocados, raw, all commercial varieties",
     "Bagels, plain, enriched, with calcium propionate (includes onion, poppy, sesame)",
     "Bananas, raw",
+    "Pork, cured, bacon, cooked, baked",
     "Bread, white, commercially prepared, toasted",
     "Fast foods, submarine sandwich, cold cut on white bread with lettuce and tomato",
     "PIZZA HUT 14\" Cheese Pizza, Hand-Tossed Crust",

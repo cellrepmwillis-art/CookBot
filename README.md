@@ -3,6 +3,9 @@
 A calorie counter that runs on your phone. Type what you ate or drank the way you'd say it, tap **Subtract**, and it's taken off your daily goal. There are no lists to pick from: the app chooses the closest food or foods behind the scenes. The count resets at 3:00am local time every day.
 
 - **Type it any way:** "sheetz iced latte regular with an extra shot made with oat milk" logs one regular iced oat-milk latte plus a shot, about 137 cal. A small "≈ 137 cal" preview appears as you type.
+- **Averaged when unsure:** when several foods match equally well, the app uses their middle value instead of trusting whichever ranked first. "4 piece bojangles tenders" averages chicken strips from Burger King, KFC, Popeyes, Chick-fil-A and others to about 490, close to Bojangles' ~500. The app's own everyday foods, meals and lattes, your saved numbers, and changed orders like "meat only" still use one exact pick.
+- **Counts and measures:** "4-piece", "4 tenders" and "kfc 3 strips" count single pieces, even when a product's serving is "3 tenders". "2 cups rice" and "2 tbsp peanut butter" use that measure, and "16 oz" or "6 inch" pick that size.
+- **Restaurants:** naming a restaurant favors restaurant food over grocery products, and restaurants' own menu words are understood. For example, Bojangles "supremes" and Raising Cane's "fingers" are chicken tenders.
 - **Lists:** "2 eggs, toast and coffee" logs each part. Names that contain "and", like "macaroni and cheese", stay whole.
 - **Words it doesn't know are skipped:** restaurants whose menus aren't in the data, like Sheetz, Wawa, Chipotle or Starbucks, are ignored, so "wawa hoagie" logs a sub sandwich and "chipotle burrito bowl" a chicken burrito bowl.
 - **Changes and sizes:** "meat only", "no bun", "extra cheese", "extra shot", "half a", counts ("2 eggs", "pizza 3") and sizes ("large iced latte", "medium fries").
