@@ -1,13 +1,14 @@
 import { dayKey, nextReset, previousDay } from "./day.js";
 import { streak, recap } from "./streak.js";
 import { proteinTarget, calorieSuggestion, AIMS } from "./profile.js";
+import { recommend } from "./recommend.js";
 import { loadFoods, addFoods, findFood, findByBarcode } from "./foods.js";
 import { applyModifiers } from "./modifiers.js";
 import { resolve, planItem } from "./resolve.js";
 import { barcodeKeys, startScanner, decodePhoto, lookupOnline } from "./barcode.js";
 
 // Shown at the bottom of Settings, to check which version a phone is running.
-const VERSION = "2026-10-23 · 9:00 PM";
+const VERSION = "2026-10-23 · 9:30 PM";
 const STORAGE_KEY = "cookbot";
 const KEEP_DAYS = 30;
 const DEFAULT_GOAL = 2000;
@@ -82,8 +83,37 @@ function render() {
   $("log-tip").hidden = entries.length === 0;
 
   renderMacros(entries);
+  renderSuggestion(entries, remaining);
   renderStreak(eaten);
 }
+
+// ---- Recommendation ----
+
+// "Recommend: chicken breast and rice (~450 cal, 45 g protein): 70 g protein
+// to go." Tapping it puts the food in the box, ready to Subtract.
+function renderSuggestion(entries, remaining) {
+  const eaten = sumMacros(entries) ?? { protein: 0, carbs: 0, fat: 0 };
+  const { text, query } = recommend({
+    remaining,
+    hour: new Date().getHours(),
+    eaten,
+    proteinGoal: proteinTarget(state.profile),
+    labels: entries.map((e) => e.label),
+  });
+  const label = document.createElement("b");
+  label.textContent = "Recommend: ";
+  $("suggest").replaceChildren(label, text.replace(/^Try /, ""));
+  $("suggest").dataset.query = query ?? "";
+  $("suggest").disabled = !query;
+}
+
+$("suggest").addEventListener("click", () => {
+  const query = $("suggest").dataset.query;
+  if (!query) return;
+  $("search").value = query;
+  $("search").focus();
+  showEstimate();
+});
 
 // ---- Macros ----
 

@@ -1,6 +1,6 @@
 // Caches the app so it opens instantly and works offline. Only photo estimates
 // need a connection; searching foods and logging work without one.
-const CACHE = "cookbot-v25";
+const CACHE = "cookbot-v26";
 const SHELL = [
   "./",
   "index.html",
@@ -15,6 +15,7 @@ const SHELL = [
   "resolve.js",
   "streak.js",
   "profile.js",
+  "recommend.js",
   "modifiers.js",
   "manifest.webmanifest",
   "icon.svg",

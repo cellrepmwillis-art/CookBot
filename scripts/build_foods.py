@@ -92,6 +92,9 @@ COMMON = {
 # Everyday portions missing from ABBREV.txt, which lists at most two per food.
 # These are offered first; LATER_PORTIONS are offered after USDA's own.
 EXTRA_PORTIONS = {
+    "Beef, top sirloin, steak, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, broiled (URMIS #2237, Sirloin steak, Sirloin strip)": [["1 steak (6 oz cooked)", 170]],
+    "Vegetables, mixed, frozen, cooked, boiled, drained, without salt": [["1 cup", 182]],
+    "Fish, salmon, Atlantic, farmed, cooked, dry heat": [["1 fillet (6 oz)", 170]],
     "Bananas, raw": [["1 medium (7\" to 8\" long)", 118], ["1 large (8\" to 9\" long)", 136], ["1 small (6\" to 7\" long)", 101]],
     "Apples, raw, with skin": [["1 medium (3\" dia)", 182], ["1 large (3-1/4\" dia)", 223], ["1 small (2-3/4\" dia)", 149]],
     "Beverages, coffee, brewed, prepared with tap water": [["1 cup (8 fl oz)", 237], ["1 mug (12 fl oz)", 355], ["1 large (16 fl oz)", 474]],
@@ -107,7 +110,8 @@ EXTRA_PORTIONS = {
     "Bread, white, commercially prepared, toasted": [["1 slice", 23], ["2 slices", 46]],
     "Water, bottled, generic": [["1 bottle (16.9 fl oz)", 500]],
 }
-FIRST_CHOICE = {"Beverages, coffee, brewed, prepared with tap water", "Rice, white, long-grain, regular, enriched, cooked", "Chicken, broilers or fryers, breast, meat only, cooked, roasted"}
+# A plain "steak", "vegetables" or "salmon" means these.
+FIRST_CHOICE = {"Beef, top sirloin, steak, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, broiled (URMIS #2237, Sirloin steak, Sirloin strip)", "Vegetables, mixed, frozen, cooked, boiled, drained, without salt", "Fish, salmon, Atlantic, farmed, cooked, dry heat", "Beverages, coffee, brewed, prepared with tap water", "Rice, white, long-grain, regular, enriched, cooked", "Chicken, broilers or fryers, breast, meat only, cooked, roasted"}
 
 # Clearer names where USDA's are hard to tell apart.
 RENAME = {
