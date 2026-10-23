@@ -113,6 +113,8 @@ export function isRestaurantQuery(query) {
 }
 export const isRestaurantFood = (food) => RESTAURANT_FOOD.test(food[0]);
 
+const MEAT_SUBSTITUTE = /\b(quorn|gardein|morningstar|beyond|impossible|tofurky|meatless|meat-free|chicken-free|plant-based|vegan)\b/i;
+
 let foods = null;
 let index = null;
 
@@ -352,6 +354,10 @@ function rank(tokens, partial = false, restaurant = false) {
       score += 60 * common; // everyday foods first; 2 = first choice
     }
     score -= nameWords.length; // prefer short, generic names
+    // USDA's own entries break ties with packaged products ("quarter pounder":
+    // McDonald's, not Quorn's meatless one). Meat substitutes only when named.
+    if (foods[i][4] === undefined) score += 8;
+    if (MEAT_SUBSTITUTE.test(foods[i][0]) && !tokens.some((t) => MEAT_SUBSTITUTE.test(t))) score -= 30;
     // "bojangles tenders": restaurant tenders, not frozen ones from the store.
     if (restaurant && RESTAURANT_FOOD.test(foods[i][0])) matched += 0.75;
     results.push([score, i, matched]);

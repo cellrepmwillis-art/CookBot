@@ -147,3 +147,14 @@ test("energy drinks: regular, not sugar-free, at the size typed", { skip: !hasBr
   assert.ok(total("sugar free red bull") < 20);
   within("drpepper", 150);
 });
+
+test("fractions and size words: '2/3 small red bull can'", { skip: !hasBranded && "needs branded.json" }, () => {
+  // Small Red Bull: 110 cal per 8.4 oz can; two thirds of it is about 73. Once logged 131.
+  const r = resolve("2/3 small red bull can");
+  assert.ok(r.total >= 66 && r.total <= 81, `${r.total}`);
+  assert.match(r.items[0].portion, /^0\.67 ×/);
+  assert.ok(total("small red bull") < total("large red bull"));
+  near(total("1/2 cup rice"), total("1 cup rice") / 2);
+  near(total("half a big mac"), total("big mac") / 2);
+  assert.match(names("a quarter pounder")[0], /McDONALD'S, QUARTER POUNDER/); // not a quarter of something, not Quorn's
+});

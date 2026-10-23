@@ -80,7 +80,7 @@ export function lookup(query, limit = 25) {
   const parsed = lookupSized(query, limit);
   const size = query.match(SIZE)?.[1].toLowerCase();
   const results = parsed.results.map((plan) => withSize(plan, size, query.match(MEASURE), parsed.unit)).map((plan) => (parsed.counted ? withCount(plan, parsed.countNoun) : plan));
-  return { ...parsed, results };
+  return { ...parsed, results, size };
 }
 
 // how: "exact" (every word matched a food name), "loose" (after dropping

@@ -9,12 +9,14 @@ export function planCalories(plan, portion, units) {
   return Math.max(0, caloriesFor(plan.food, portion.grams, units) + Math.round(adjustment * (units / plan.count)));
 }
 
+const amount = (n) => String(Number(n.toFixed(2))); // 2/3 -> "0.67"
+
 export function planItem(plan, quantity) {
   const portion = plan.portion ?? portionsFor(plan.food)[0];
   const units = quantity * plan.count;
   return {
     name: plan.name,
-    portion: `${units} × ${portion.label}`,
+    portion: `${amount(units)} × ${portion.label}`,
     calories: planCalories(plan, portion, units),
     food: plan.source,
   };
@@ -32,6 +34,14 @@ function median(values) {
   return sorted.length % 2 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
 }
 
+// The usual serving, or for "small"/"large" the low or high end of them.
+function servingFor(servings, size) {
+  const sorted = [...servings].sort((a, b) => a - b);
+  if (size === "small") return sorted[Math.floor(sorted.length * 0.15)];
+  if (size === "large") return sorted[Math.ceil(sorted.length * 0.85) - 1];
+  return median(sorted);
+}
+
 function consensusItem(group, text) {
   const [top] = group.results;
   // Exact picks stay exact: the app's own everyday foods, meals and lattes,
@@ -47,7 +57,7 @@ function consensusItem(group, text) {
   const kids = /\bkids?'?\b/i.test(text);
   // Raw or meatless versions only when asked for: "chicken tenders" are cooked chicken.
   // Sugar-free, diet and light versions too: a "red bull" is the regular one.
-  const unusual = /\b(raw|uncooked|unprepared|dry mix|meatless|chicken-free|meat-free|plant-based|vegan|sugar[- ]?free|sugarfree|zero|diet|light|lite|sf)\b/i;
+  const unusual = /\b(raw|uncooked|unprepared|dry mix|meatless|chicken-free|meat-free|plant-based|vegan|sugar[- ]?free|sugarfree|zero|diet|light|lite|sf|quorn|gardein|morningstar|beyond|impossible|tofurky)\b/i;
   const askedUnusual = unusual.test(text);
   let similar = group.results.filter((plan) =>
     !plan.adjustments.length && plan.count === 1 && picked(plan) &&
@@ -79,11 +89,12 @@ function consensusItem(group, text) {
   const density = median(like.map((plan) => plan.food[1]));
   // A size that was typed ("8 oz") wins; else the usual labeled serving.
   const servings = like.filter((plan) => plan.food[2].length).map((plan) => portionsFor(plan.food)[0].grams);
-  const grams = top.portion ? top.portion.grams : servings.length ? median(servings) : portionsFor(top.food)[0].grams;
+  // "small red bull": the smaller of the usual servings (an 8.4 oz can, not 12).
+  const grams = top.portion ? top.portion.grams : servings.length ? servingFor(servings, group.size) : portionsFor(top.food)[0].grams;
   const units = group.quantity * top.count;
   const label = top.portion?.label ?? `1 serving (${Math.round(grams)} g)`;
   const shown = like.includes(top) ? top : like[0]; // named after a product that was averaged
-  return { name: `${shown.name} (typical of ${like.length} similar)`, portion: `${units} × ${label}`, calories: Math.round((density * grams * units) / 100), food: shown.source };
+  return { name: `${shown.name} (typical of ${like.length} similar)`, portion: `${amount(units)} × ${label}`, calories: Math.round((density * grams * units) / 100), food: shown.source };
 }
 
 // "sheetz special 300", "snack 250 cal", or just "300". A small number at

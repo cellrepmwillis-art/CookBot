@@ -46,6 +46,15 @@ const ONLY_BEFORE = /\b(?:only|just)\s+(?:the\s+)?([a-z]+)/g;
 const ONLY_AFTER = /\b([a-z]+)\s+only\b/g;
 const EXTRA = /\b(?:extra|add|plus|with extra)\s+(?:an?\s+|one\s+)?([a-z]+)(?:\s+shots?\b)?/g;
 const NO_BUN = /\b(?:protein[- ]style|lettuce[- ]wrap(?:ped)?|bunless|no[- ]bun)\b/g;
+// "a quarter" needs "of" so "a quarter pounder" stays a burger.
+const OF_A = String.raw`(?:\s+of)?(?:\s+(?:a|an|the))?\b`;
+const FRACTIONS = [
+  [new RegExp(String.raw`\b(\d+)\s*\/\s*(\d+)` + OF_A, "g"), (_, a, b) => (Number(b) ? Number(a) / Number(b) : 1)],
+  [new RegExp(String.raw`\b(?:a|one)\s+third` + OF_A, "g"), 1 / 3],
+  [new RegExp(String.raw`\btwo\s+thirds` + OF_A, "g"), 2 / 3],
+  [new RegExp(String.raw`\bthree\s+quarters` + OF_A, "g"), 3 / 4],
+  [new RegExp(String.raw`\b(?:a|one)\s+quarter\s+of(?:\s+(?:a|an|the))?\b`, "g"), 1 / 4],
+];
 const HALF = /\b(?:half(?: of)?(?: a| an| the)?|1\/2(?: a| an| of)?)\b/g;
 
 const NUMBER_WORDS = { two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, twenty: 20 };
@@ -59,13 +68,23 @@ const HOUSEHOLD = "cups?|tbsps?|tablespoons?|tsps?|teaspoons?|bowls?|slices?|pie
 // fullText keeps the modifier words, for foods USDA already lists that way.
 export function parseQuery(query) {
   let q = ` ${query.toLowerCase().replace(/[’']/g, "'")} `;
+  // "2/3 of a red bull", "a third of", "three quarters of": a fraction of one.
+  let fraction = 1;
+  for (const [pattern, value] of FRACTIONS) {
+    q = q.replace(pattern, (...m) => {
+      fraction *= typeof value === "function" ? value(...m) : value;
+      return " ";
+    });
+  }
   // "four piece", "a dozen wings": number words as digits.
   q = q.replace(/\bhalf (?:a )?dozen\b/g, "6").replace(/\b(?:a )?dozen\b/g, "12")
     .replace(new RegExp(`\\b(${Object.keys(NUMBER_WORDS).join("|")})\\b(?=\\s*-?\\s*[a-z])`, "g"), (w) => NUMBER_WORDS[w]);
   // "no skin", "without the skin": skinless.
   q = q.replace(/\b(?:no|without|w\/o|minus)\s+(?:the\s+)?skin\b|\bskin\s+off\b/g, " skinless ");
   let quantity = 1;
-  let counted = false; // the quantity is a count of pieces: "4-piece", "4 tenders"
+  // the quantity is a count of pieces ("4-piece", "4 tenders") or of a measure
+  // ("1/2 cup"); "2/3 of a red bull" is just part of one.
+  let counted = fraction !== 1 && new RegExp(`^\\s*(?:${HOUSEHOLD})\\b`).test(q);
   // "single espresso shot", "double shot of espresso": a number of shots.
   const shots = q.match(/\b(single|double|triple|quad)\s+(?:shots?\s+(?:of\s+)?)?espresso(?:\s+shots?)?\b/);
   if (shots) {
@@ -133,6 +152,7 @@ export function parseQuery(query) {
   take(EXTRA, "extra");
   q = q.replace(/\b(?:only|just)\b/g, " ");
 
+  quantity *= fraction;
   const text = q.replace(/\s+/g, " ").trim();
   // What's being counted: "piece" for "4-piece", else the last word ("breasts").
   const countNoun = pieces ? "piece" : counted ? (text.split(" ").filter((w) => !/^(only|just|extra|large|small|medium|regular)$/.test(w)).pop() ?? "").replace(/(es|s)$/, "") : null;
