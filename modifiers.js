@@ -64,6 +64,10 @@ const UNITS = String.raw`(?:inch|inches|in|oz|ounce|ounces|g|grams?|lbs?|pounds?
 
 const HOUSEHOLD = "cups?|tbsps?|tablespoons?|tsps?|teaspoons?|bowls?|slices?|pieces?|glass(?:es)?|cans?|bottles?|scoops?|servings?|strips?|links?|patties|patty";
 
+// About how much a casual amount is.
+const CASUAL_AMOUNTS = { drizzle: [2, "tsp"], splash: [2, "tbsp"], dollop: [2, "tbsp"], sprinkle: [1, "tsp"], spoonful: [1, "tbsp"], squirt: [1, "tbsp"], pat: [1, "pat"] };
+const CASUAL = /\b(?:a\s+)?(drizzle|splash|dollop|sprinkle|spoonful|squirt|pat)(?:d|s)?(?:\s+of)?\b/;
+
 // Splits a search into the food to look up, a quantity, and modifiers.
 // fullText keeps the modifier words, for foods USDA already lists that way.
 export function parseQuery(query) {
@@ -132,6 +136,15 @@ export function parseQuery(query) {
     unit = measure[1].replace(/(es|s)$/, "").replace(/^tablespoon$/, "tbsp").replace(/^teaspoon$/, "tsp");
     q = q.slice(measure.index + measure[0].length);
     q = q.replace(/^\s*of\b/, " ");
+  }
+  // "a drizzle of olive oil", "a splash of milk": everyday amounts.
+  const casual = !unit && q.match(CASUAL);
+  if (casual) {
+    const [n, casualUnit] = CASUAL_AMOUNTS[casual[1]];
+    quantity *= n;
+    unit = casualUnit;
+    counted = true;
+    q = q.slice(0, casual.index) + " " + q.slice(casual.index + casual[0].length);
   }
   const fullText = q.replace(/\bw\/o\b|\bno\b/g, "without").replace(/\s+/g, " ").trim();
 

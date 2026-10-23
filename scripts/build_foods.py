@@ -199,6 +199,7 @@ MEALS = [
     ("Chicken and rice", "1 plate (5 oz chicken breast, 1 cup rice)", [(CHICKEN, 140), (WHITE_RICE, 158)]),
     ("Salmon with rice and broccoli", "1 plate (5 oz salmon, 1 cup rice, 1/2 cup broccoli)", [("Fish, salmon, Atlantic, farmed, cooked, dry heat", 140), (WHITE_RICE, 158), ("Broccoli, cooked, boiled, drained, without salt", 78)]),
     ("Steak and potato", "1 plate (6 oz sirloin, baked potato, 1 tbsp butter)", [("Beef, top sirloin, steak, separable lean and fat, trimmed to 0\" fat, all grades, cooked, broiled (Sirloin strip, Sirloin steak)", 170), ("Potatoes, baked, flesh and skin, without salt", 173), ("Butter, salted", 14)]),
+    ("Salad, garden", "1 bowl, no dressing", SALAD),
     ("Salad, garden, with ranch", "1 bowl, 2 tbsp ranch", SALAD + [(RANCH, 30)]),
     ("Salad, grilled chicken, with ranch", "1 bowl, 3 oz chicken, 2 tbsp ranch", SALAD + [(CHICKEN, 85), (RANCH, 30)]),
     ("Spaghetti with meat sauce", "1 plate (1 1/2 cups pasta)", [(PASTA, 186), (MARINARA, 132), ("Beef, ground, 85% lean meat / 15% fat, crumbles, cooked, pan-browned (ground round, hamburger)", 56)]),
@@ -275,6 +276,13 @@ def main(src):
         portions += LATER_PORTIONS.get(name, [])
         # Offer real servings ("1 can") before tiny units ("1 fl oz").
         portions.sort(key=lambda p: bool(SMALL_UNIT.match(p[0])))
+        # Nobody means a cup of honey, cheese or granola: when a cup is over
+        # 400 cal, a spoonful or an ounce comes first.
+        big_cup = lambda p: p[0].startswith("1 cup") and float(kcal) * p[1] / 100 > 400
+        if portions and big_cup(portions[0]):
+            if not any(not big_cup(p) for p in portions):
+                portions.insert(0, ["1 oz", 28.4])
+            portions.sort(key=big_cup)
         foods.append([name, round(float(kcal)), portions, 2 if name in FIRST_CHOICE else int(name in COMMON)])
 
     names = {f[0] for f in foods}

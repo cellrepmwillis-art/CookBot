@@ -1,4 +1,4 @@
-import { searchFoods, closestFoods, findFood, portionsFor } from "./foods.js";
+import { searchFoods, closestFoods, findFood, portionsFor, extraWords, namesFood } from "./foods.js";
 import { parseQuery, applyModifiers } from "./modifiers.js";
 
 // Turns what someone typed into food choices, each with a plan saying how
@@ -29,12 +29,25 @@ function ounces(labels, n) {
 }
 
 // One of a household measure: "2 tbsp (32 g)" gives a 1 tbsp portion of 16 g.
+// Spoons and cups convert ("2 tsp" of oil listed per tablespoon).
+const TEASPOONS = { tsp: 1, teaspoon: 1, tbsp: 3, tablespoon: 3, cup: 48 };
+const VOLUME_LABEL = /^(\d*\.?\d+)\s*(tsp|teaspoons?|tbsp|tablespoons?|cups?)\b/i;
+
 function perUnit(labels, unit) {
   // "2 tbsp (32 g)" first, then a count anywhere: "1 serving, 5 pieces".
   for (const anchor of ["^", ""]) {
     for (const p of labels) {
       const m = p.label.match(new RegExp(`${anchor}(\\d*\\.?\\d+)\\s*${unit}`, "i"));
       if (m && Number(m[1]) > 0) return Number(m[1]) === 1 ? p : { label: `1 ${unit}`, grams: p.grams / Number(m[1]) };
+    }
+  }
+  if (TEASPOONS[unit]) {
+    for (const p of labels) {
+      const m = p.label.match(VOLUME_LABEL);
+      if (!m || !(Number(m[1]) > 0)) continue;
+      const labelUnit = m[2].toLowerCase().replace(/s$/, "");
+      const grams = (p.grams / Number(m[1]) / TEASPOONS[labelUnit]) * TEASPOONS[unit];
+      return { label: `1 ${unit}`, grams };
     }
   }
   return labels.find((p) => new RegExp(`\\b${unit}`, "i").test(p.label));
@@ -119,18 +132,49 @@ function lookupSized(query, limit) {
 
 const SEPARATOR = /\s*(?:,|\+|&|\band\b|\bplus\b)\s*/i;
 
+// "X with Y": one food when that's what it is ("whopper with cheese", "bagel
+// with cream cheese", "latte with oat milk"), else X and Y ("salad with olive
+// oil", "toast with butter", "coffee with a splash of milk").
+function lookupWith(query, single, limit) {
+  const top = single.results[0];
+  const casual = CASUAL_WORDS.test(query); // the amount belongs to Y: split
+  const whole = top && !casual && single.how !== "closest" && (isCurated(top.food) || extraWords(query, top.food) <= 2);
+  if (whole) return { single };
+  if (!casual) {
+    const merged = lookup(query.replace(/\bwith\b/gi, " "), limit);
+    const main = query.split(/\s+with\s+/i)[0]; // "latte" in "latte with oat milk"
+    const food = merged.results[0]?.food;
+    if (food && merged.how !== "closest" && isCurated(food) && namesFood(main, food)) return { single: merged };
+  }
+  const texts = query.split(SEPARATOR).flatMap((t) => t.split(/\s+with\s+/i)).map((t) => t.trim()).filter(Boolean);
+  if (texts.length < 2) return null;
+  const parts = texts.map((text) => ({ text, ...lookup(text, limit) }));
+  return parts.every((p) => p.results.length && p.how !== "closest") ? { parts } : null;
+}
+
 // Several foods at once: "chicken breast and rice", "2 eggs, toast and coffee".
 // "with" isn't a separator: "latte with oat milk" is one drink.
 // Used only when the whole phrase isn't one food ("mac and cheese" is).
 //   { single } or { parts: [{ text, ...lookup(text) }] }
+const CASUAL_WORDS = /\b(drizzle|splash|dollop|sprinkle|spoonful|squirt|pat)\b/i;
+const isCurated = (food) => Boolean(food[3]) || food[5] === "mine";
+
 export function lookupMeal(query, limit = 25) {
   const single = lookup(query, limit);
+  if (/\bwith\b/i.test(query)) {
+    const withMeal = lookupWith(query, single, limit);
+    if (withMeal) return withMeal;
+  }
   const listed = SEPARATOR.test(query);
   // A list stays whole only when it's a food's actual name ("macaroni and cheese").
   if (single.results.length && (listed ? single.how === "exact" : !single.unmatched.length)) return { single };
-  const texts = query.split(SEPARATOR).map((t) => t.trim()).filter(Boolean);
+  let texts = query.split(SEPARATOR).map((t) => t.trim()).filter(Boolean);
+  // "salad with olive oil", "toast with butter": when the whole phrase isn't a
+  // food, "with" adds one. ("latte with oat milk" matches whole, so it stays.)
+  const withSplit = single.how === "closest" || !single.results.length;
+  if (withSplit) texts = texts.flatMap((t) => t.split(/\s+with\s+/i)).map((t) => t.trim()).filter(Boolean);
   if (texts.length < 2) return { single };
   const parts = texts.map((text) => ({ text, ...lookup(text, limit) }));
-  if (parts.some((p) => !p.results.length)) return { single };
+  if (parts.some((p) => !p.results.length || (withSplit && p.how === "closest"))) return { single };
   return { parts };
 }

@@ -365,6 +365,21 @@ function rank(tokens, partial = false, restaurant = false) {
   return results.sort((a, b) => b[2] - a[2] || b[0] - a[0]);
 }
 
+// Whether a food is the thing the search names first: "salad" is the food in
+// "Salad, garden" but not in "Oil, olive, salad or cooking".
+export function namesFood(query, food) {
+  const first = normalizedWords(food[0].split(",")[0]);
+  return expand(query, true).some((t) => tokenScore(first, t) >= 2);
+}
+
+// How many words of a food's name weren't typed: "tuna salad with quinoa &
+// olive oil" has 4 for "salad with olive oil", "BURGER KING, WHOPPER, with
+// cheese" 2 for "whopper with cheese".
+export function extraWords(query, food) {
+  const tokens = expand(query, false);
+  return normalizedWords(food[0]).filter((w) => w.length >= 3 && !IGNORED.has(w) && w !== "without" && !tokens.some((t) => tokenScore([w], t))).length;
+}
+
 // The words of a search a food's name matches: foods with the same ones are
 // equally good matches, which resolve.js averages.
 export function matchedWords(query, food) {

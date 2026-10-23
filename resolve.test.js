@@ -158,3 +158,17 @@ test("fractions and size words: '2/3 small red bull can'", { skip: !hasBranded &
   near(total("half a big mac"), total("big mac") / 2);
   assert.match(names("a quarter pounder")[0], /McDONALD'S, QUARTER POUNDER/); // not a quarter of something, not Quorn's
 });
+
+test("'X with Y': one food when it is one, else two; casual amounts", () => {
+  // "one cup iceberg salad with olive oil drizzle" once logged 221 (a packaged tuna salad).
+  const salad = resolve("one cup iceberg salad with olive oil drizzle");
+  assert.equal(salad.items.length, 2);
+  assert.ok(salad.total > 60 && salad.total < 130, `${salad.total}`); // ~10 lettuce + ~80 for 2 tsp oil
+  assert.deepEqual(names("toast with butter").length, 2);
+  assert.ok(total("coffee with a splash of milk") < 40);
+  assert.equal(names("latte with oat milk")[0], "Latte, hot, oat milk");
+  assert.equal(names("bagel with cream cheese").length, 1);
+  assert.equal(names("salad with olive oil")[0], "Salad, garden");
+  assert.ok(total("oatmeal with honey") < 450, "a spoonful of honey, not a cup");
+  near(total("a drizzle of olive oil"), total("2 tsp olive oil"));
+});
