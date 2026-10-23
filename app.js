@@ -77,14 +77,12 @@ function render() {
   $("log-empty").hidden = entries.length > 0;
   $("log-tip").hidden = entries.length === 0;
 
-  renderStreak(eaten, remaining);
+  renderStreak(eaten);
 }
 
 // ---- Streak ----
 
-const cal = (n) => `${n.toLocaleString()} cal`;
-
-function renderStreak(eaten, remaining) {
+function renderStreak(eaten) {
   const today = dayKey();
   // Today's summary follows today's log and goal; past days stay as they ended.
   const before = JSON.stringify(state.days[today] ?? null);
@@ -93,15 +91,8 @@ function renderStreak(eaten, remaining) {
   showRecap(today);
   if (JSON.stringify(state.days[today] ?? null) !== before) save();
 
-  const { current, balance, best } = streak(state.days, today);
-  $("streak").textContent = current ? `🔥 ${current}-day streak` : "🔥 No streak yet";
-  const parts = [];
-  if (current) parts.push(`${cal(balance)} under goal so far`);
-  if (best > current) parts.push(`best: ${best} days`);
-  if (eaten > 0 && remaining >= 0) parts.push(`today is on track for day ${current + 1}`);
-  else if (eaten > 0) parts.push(current ? "today is over, so the streak restarts tomorrow" : "today is over goal");
-  else parts.push(current ? "log today to keep it going" : "finish today at or under your goal to start one");
-  $("streak-detail").textContent = parts.join(" · ").replace(/^./, (c) => c.toUpperCase());
+  const { current } = streak(state.days, today);
+  $("streak").textContent = `🔥 ${current} ${current === 1 ? "day" : "days"} on track`;
 }
 
 // The first time the app opens on a new day: how the last day went.
@@ -115,10 +106,10 @@ function showRecap(today) {
   const when = last === previousDay(today) ? "Yesterday" : new Date(`${last}T12:00`).toLocaleDateString([], { weekday: "long" });
   const { current } = streak(state.days, today);
   let text;
-  if (r.result === "under" && last !== previousDay(today)) text = "Welcome back! A day with nothing logged resets the streak, so a new one starts today.";
-  else if (r.result === "under") text = `${when}: ${cal(r.eaten)} of ${r.goal.toLocaleString()} ✓ Streak: ${current} ${current === 1 ? "day" : "days"} 🔥`;
-  else if (r.result === "over") text = `${when}: ${cal(r.eaten)}, ${cal(r.eaten - r.goal)} over your goal. The streak starts again today.`;
-  else if (Object.keys(state.days).length) text = `Nothing was logged ${when === "Yesterday" ? "yesterday" : `on ${when}`}, so the streak starts again today.`;
+  if (r.result === "under" && last !== previousDay(today)) text = "Welcome back! A day with nothing logged starts the count over today.";
+  else if (r.result === "under") text = `${when} was on track ✓ 🔥 ${current} ${current === 1 ? "day" : "days"} in a row`;
+  else if (r.result === "over") text = `${when} went over your goal, so the count starts over today.`;
+  else if (Object.keys(state.days).length) text = `Nothing was logged ${when === "Yesterday" ? "yesterday" : `on ${when}`}, so the count starts over today.`;
   if (!text) return;
   $("recap-text").textContent = text;
   $("recap").classList.toggle("over", r.result !== "under");

@@ -10,10 +10,10 @@ test("previous day crosses months and years", () => {
   assert.equal(previousDay("2027-01-01"), "2026-12-31");
 });
 
-test("counts finished days in a row at or under the goal, with the calories saved", () => {
+test("counts finished days in a row at or under the goal", () => {
   const days = { "2026-10-20": day(1700), "2026-10-21": day(1800), "2026-10-22": day(1500), "2026-10-23": day(2500) };
   // Today (the 23rd) is still going, so it doesn't count yet, even though it's over.
-  assert.deepEqual(streak(days, "2026-10-23"), { current: 3, balance: 100 + 0 + 300, best: 3 });
+  assert.deepEqual(streak(days, "2026-10-23"), { current: 3 });
 });
 
 test("going over, or logging nothing, ends the streak", () => {
@@ -22,11 +22,6 @@ test("going over, or logging nothing, ends the streak", () => {
   const skipped = { "2026-10-20": day(1500), "2026-10-22": day(1600) }; // nothing logged on the 21st
   assert.equal(streak(skipped, "2026-10-23").current, 1);
   assert.equal(streak({}, "2026-10-23").current, 0);
-});
-
-test("best streak remembers longer runs from the past", () => {
-  const days = { "2026-10-01": day(1500), "2026-10-02": day(1500), "2026-10-03": day(1500), "2026-10-04": day(2000), "2026-10-22": day(1500) };
-  assert.deepEqual(streak(days, "2026-10-23"), { current: 1, balance: 300, best: 3 });
 });
 
 test("each day is judged against that day's goal", () => {
