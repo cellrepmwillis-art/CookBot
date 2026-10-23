@@ -9,8 +9,9 @@ fat, alcohol, scans, completeness, errors, quantity, modified, categories
 
     python3 scripts/build_branded.py us.tsv > branded.json
 
-Output: a JSON array of [name, kcal per 100 g, [[portion, grams], ...]],
-the same shape as foods.json.
+Output: a JSON array of [name, kcal per 100 g, [[portion, grams], ...], 0, barcodes],
+the same shape as foods.json plus barcodes: space-separated, without leading
+zeros, so UPC-A ("012345678905") and EAN-13 ("0012345678905") match.
 """
 import csv
 import json
@@ -73,6 +74,14 @@ DRINK = re.compile(r"\b(shake|drink|milk|juice|soda|coffee|latte|tea|smoothie|ko
 CORPORATE = re.compile(r"\b(inc|llc|corp|corporation|co|company|brands|ltd)\b\.?", re.IGNORECASE)
 # A parent company at the start of a product name: "Fair Oaks Farms Brands Inc. Fairlife, ..."
 COMPANY_PREFIX = re.compile(r"^[^,]{0,40}?\b(?:inc|llc|corp|ltd)\b\.?,?\s+", re.IGNORECASE)
+
+
+def real_barcode(code):
+    """False for placeholders like 12345678905 (the sample UPC) or 999999999."""
+    if not code.isdigit() or len(code) < 6:
+        return False
+    body = code[:-1]  # without the check digit
+    return len(set(body)) > 2 and body not in "123456789012345678901234567890" and body not in "987654321098765432109876543210"
 
 
 def calories_add_up(kcal, row):
@@ -146,12 +155,17 @@ def main(path):
         key = norm(display)
         best = candidates.get(key)
         rank = (scans, bool(portions))
+        code = row["code"].lstrip("0")
+        codes = (best["codes"] if best else []) + ([code] if real_barcode(code) else [])
         if best is None or rank > best["rank"]:
-            candidates[key] = {"food": [display, round(kcal), portions], "scans": scans, "priority": priority, "rank": rank}
+            best = candidates[key] = {"food": [display, round(kcal), portions], "scans": scans, "priority": priority, "rank": rank}
+        best["codes"] = codes
 
     chosen = [c for c in candidates.values() if c["priority"]]
     others = sorted((c for c in candidates.values() if not c["priority"]), key=lambda c: -c["scans"])
     chosen += [c for c in others[:TOP_N] if c["scans"] > 0]
+    for c in chosen:
+        c["food"] += [0, " ".join(dict.fromkeys(c["codes"][:8]))]
     foods = sorted((c["food"] for c in chosen), key=lambda f: f[0].lower())
     print(f"{len(rows)} rows, {len(candidates)} unique, {sum(c['priority'] for c in chosen)} priority-brand, {len(foods)} kept", file=sys.stderr)
     json.dump(foods, sys.stdout, separators=(",", ":"), ensure_ascii=False)

@@ -1,5 +1,6 @@
 import { dayKey, nextReset } from "./day.js";
-import { loadFoods, findFood, portionsFor, caloriesFor } from "./foods.js";
+import { loadFoods, addFoods, findFood, findByBarcode, portionsFor, caloriesFor } from "./foods.js";
+import { barcodeKeys, startScanner, decodePhoto, lookupOnline } from "./barcode.js";
 import { applyModifiers } from "./modifiers.js";
 import { lookupMeal } from "./lookup.js";
 
@@ -13,7 +14,8 @@ const $ = (id) => document.getElementById(id);
 // ---- Storage (everything lives in this browser's localStorage) ----
 
 function load() {
-  const defaults = { goal: DEFAULT_GOAL, apiKey: "", entries: [], recent: [] };
+  // myFoods: products the user looked up online by barcode.
+  const defaults = { goal: DEFAULT_GOAL, apiKey: "", entries: [], recent: [], myFoods: [] };
   try {
     const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (data) return { ...defaults, ...data };
@@ -116,7 +118,7 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) rend
 
 // ---- Food search ----
 
-const foodsReady = loadFoods().catch(() => null);
+const foodsReady = loadFoods().then((foods) => { addFoods(state.myFoods); return foods; }).catch(() => null);
 
 // Portions offered for a plan (see modifiers.js), its default first.
 const planPortions = (plan) => (plan.portion ? [plan.portion, ...portionsFor(plan.food)] : portionsFor(plan.food));
@@ -232,6 +234,97 @@ $("search").addEventListener("blur", () => {
 function rememberRecent(food) {
   state.recent = [food, ...state.recent.filter((f) => f[0] !== food[0])].slice(0, MAX_RECENT);
 }
+
+// ---- Barcode scanning ----
+
+let stopScanner = null;
+let scannedCode = null;
+
+function setScanStatus(text, isError = false) {
+  $("scan-status").textContent = text;
+  $("scan-status").classList.toggle("error", isError);
+}
+
+function stopScanning() {
+  stopScanner?.();
+  stopScanner = null;
+}
+
+async function openScanner() {
+  scannedCode = null;
+  $("scan-online").hidden = true;
+  $("scan-manual").hidden = true;
+  $("scan-view").hidden = false;
+  $("scanner").showModal();
+  setScanStatus("Point the camera at the barcode.");
+  try {
+    stopScanner = await startScanner($("scan-video"), handleBarcode);
+  } catch {
+    $("scan-view").hidden = true;
+    setScanStatus("Couldn't open the camera. Allow camera access for this site, or take a photo of the barcode instead.", true);
+  }
+}
+
+async function handleBarcode(code) {
+  stopScanning();
+  scannedCode = code;
+  if (navigator.vibrate) navigator.vibrate(60);
+  await foodsReady;
+  const food = findByBarcode(barcodeKeys(code));
+  if (food) {
+    $("scanner").close();
+    addFood(applyModifiers(food, [], findFood), 1);
+    return;
+  }
+  $("scan-view").hidden = true;
+  setScanStatus(`Barcode ${code} isn't in the built-in list. You can look it up on Open Food Facts, a free food database. This sends only the barcode number.`);
+  $("scan-online").hidden = false;
+  $("scan-manual").hidden = false;
+}
+
+$("scan-btn").addEventListener("click", openScanner);
+
+$("scan-photo").addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+  event.target.value = "";
+  if (!file) return;
+  stopScanning();
+  setScanStatus("Reading the barcode…");
+  const code = await decodePhoto(file).catch(() => null);
+  if (code) handleBarcode(code);
+  else setScanStatus("Couldn't find a barcode in that photo. Try again with the barcode filling more of the picture.", true);
+});
+
+$("scan-online").addEventListener("click", async () => {
+  const button = $("scan-online");
+  button.disabled = true;
+  setScanStatus("Looking it up…");
+  try {
+    const food = await lookupOnline(scannedCode);
+    if (!food) {
+      setScanStatus("Open Food Facts doesn't have calories for this product. Enter them from the label instead.", true);
+      return;
+    }
+    // Keep it, so it's found offline next time.
+    state.myFoods = [food, ...state.myFoods.filter((f) => f[0] !== food[0])];
+    addFoods([food]);
+    save();
+    $("scanner").close();
+    addFood(applyModifiers(food, [], findFood), 1);
+  } catch {
+    setScanStatus("Couldn't reach Open Food Facts. Check your connection, or enter the calories from the label.", true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+$("scan-manual").addEventListener("click", () => {
+  $("scanner").close();
+  addCustomItem({ name: "", portion: "", calories: "" }).querySelector("input").focus();
+});
+
+$("scan-close").addEventListener("click", () => $("scanner").close());
+$("scanner").addEventListener("close", stopScanning);
 
 // ---- Photo handling ----
 

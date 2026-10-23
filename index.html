@@ -38,6 +38,7 @@
       </label>
       <p id="search-hint" class="muted small" hidden></p>
       <ul id="search-results" class="results"></ul>
+      <button id="scan-btn" class="scan-btn">▥ Scan a barcode</button>
       <div class="secondary-actions">
         <button id="manual-add" class="link-btn">Enter calories yourself</button>
         <label id="photo-btn" class="link-btn" for="photo-input">📷 Estimate from a photo</label>
@@ -77,6 +78,22 @@
     </section>
   </main>
 
+  <dialog id="scanner" aria-labelledby="scanner-title">
+    <h2 id="scanner-title">Scan a barcode</h2>
+    <div id="scan-view" class="scan-view">
+      <video id="scan-video" playsinline muted></video>
+      <div class="scan-guide" aria-hidden="true"></div>
+    </div>
+    <p id="scan-status" class="status" role="status"></p>
+    <div id="scan-actions" class="scan-actions">
+      <button id="scan-online" class="primary" hidden>Look up online (free)</button>
+      <button id="scan-manual" hidden>Enter calories yourself</button>
+      <label id="scan-photo-btn" class="link-btn" for="scan-photo">Take a photo of the barcode instead</label>
+      <input id="scan-photo" type="file" accept="image/*" capture="environment" hidden>
+      <button id="scan-close">Close</button>
+    </div>
+  </dialog>
+
   <dialog id="settings">
     <form method="dialog" id="settings-form">
       <h2>Settings</h2>
@@ -89,8 +106,9 @@
         <input id="key-input" type="password" autocomplete="off" placeholder="sk-ant-...">
       </label>
       <p class="muted small">
-        Searching foods and entering calories is free and works offline. Your goal and food log
-        are stored only in this browser. Photo estimates are optional: they send the photo to the
+        Searching foods, scanning barcodes and entering calories is free and works offline. Your goal and food log
+        are stored only in this browser. If a scanned product isn't in the built-in list, you can choose to look it
+        up on Open Food Facts, which sends only the barcode number. Photo estimates are optional: they send the photo to the
         Anthropic API using your own key from console.anthropic.com, which bills a few cents per photo.
       </p>
       <p class="muted small">

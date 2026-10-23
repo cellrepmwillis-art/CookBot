@@ -1,7 +1,9 @@
 // Offline food search over foods.json (USDA SR28, built by scripts/build_foods.py)
 // and branded.json (packaged products from Open Food Facts, built by
 // scripts/build_branded.py).
-// Each food is [name, kcal per 100 g, [[portion, grams], ...], common (0 or 1)].
+// Each food is [name, kcal per 100 g, [[portion, grams], ...], common (0 or 1)],
+// and branded foods add a fifth item: their barcodes, space-separated, without
+// leading zeros.
 
 // Everyday words that USDA names differently.
 const SYNONYMS = {
@@ -52,14 +54,31 @@ const words = (text) => text.toLowerCase().replace(/[^a-z0-9%]+/g, " ").trim().s
 // "no" and "without" mean the same thing in USDA names ("WHOPPER, no cheese").
 const normalizedWords = (text) => words(text).map((w) => (w === "no" ? "without" : w));
 let byName = null;
+let byBarcode = null;
 
 export function setFoods(list) {
-  foods = list;
-  index = list.map(([name]) => ({ words: normalizedWords(name), firstSegment: normalizedWords(name.split(",")[0]) }));
-  byName = new Map(list.map((food) => [food[0], food]));
+  foods = [];
+  index = [];
+  byName = new Map();
+  byBarcode = new Map();
+  addFoods(list);
+}
+
+// Adds foods to the search, e.g. ones the user looked up online.
+export function addFoods(list) {
+  for (const food of list) {
+    if (byName.has(food[0])) continue;
+    foods.push(food);
+    index.push({ words: normalizedWords(food[0]), firstSegment: normalizedWords(food[0].split(",")[0]) });
+    byName.set(food[0], food);
+    for (const code of (food[4] || "").split(" ")) if (code) byBarcode.set(code, food);
+  }
 }
 
 export const findFood = (name) => byName?.get(name);
+
+// keys: from barcodeKeys() in barcode.js.
+export const findByBarcode = (keys) => keys.map((k) => byBarcode?.get(k)).find(Boolean);
 
 export async function loadFoods() {
   if (!foods) {
