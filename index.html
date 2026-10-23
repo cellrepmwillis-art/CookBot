@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f766e">
+  <title>CookBot</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <h1>CookBot</h1>
+    <button id="open-settings" class="icon-btn" aria-label="Settings">⚙︎</button>
+  </header>
+
+  <main>
+    <section class="summary card" aria-live="polite">
+      <div class="ring" id="ring">
+        <div class="ring-inner">
+          <span id="remaining" class="big">0</span>
+          <span id="remaining-label" class="muted">calories left</span>
+        </div>
+      </div>
+      <div class="summary-stats">
+        <div><span class="muted">Goal</span> <strong id="goal">0</strong></div>
+        <div><span class="muted">Eaten</span> <strong id="eaten">0</strong></div>
+        <div class="muted small" id="reset-info"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <label class="photo-btn" for="photo-input">
+        <span class="photo-icon" aria-hidden="true">📷</span>
+        <span>Snap or choose a photo</span>
+      </label>
+      <input id="photo-input" type="file" accept="image/*" hidden>
+      <button id="manual-add" class="link-btn">or add calories manually</button>
+    </section>
+
+    <section id="review" class="card" hidden>
+      <img id="preview" alt="Your meal photo">
+      <label class="field">
+        <span>Anything the photo doesn't show? (optional)</span>
+        <input id="note" type="text" placeholder="e.g. large size, oat milk, ate half">
+      </label>
+      <button id="estimate-btn" class="primary">Estimate calories</button>
+      <p id="status" class="status" role="status"></p>
+
+      <div id="result" hidden>
+        <h2>Estimate</h2>
+        <p class="muted small">Adjust any number before adding.</p>
+        <ul id="items" class="items"></ul>
+        <button id="add-item" class="link-btn">+ add an item</button>
+        <p id="ai-notes" class="muted small"></p>
+        <div class="total-row"><span>Total</span><strong id="estimate-total">0</strong></div>
+        <div class="row">
+          <button id="cancel-btn">Cancel</button>
+          <button id="confirm-btn" class="primary">Subtract from today</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Today</h2>
+      <ul id="log" class="log"></ul>
+      <p id="log-empty" class="muted">Nothing logged yet today.</p>
+    </section>
+  </main>
+
+  <dialog id="settings">
+    <form method="dialog" id="settings-form">
+      <h2>Settings</h2>
+      <label class="field">
+        <span>Daily calorie goal</span>
+        <input id="goal-input" type="number" min="1" step="1" inputmode="numeric" required>
+      </label>
+      <label class="field">
+        <span>Anthropic API key</span>
+        <input id="key-input" type="password" autocomplete="off" placeholder="sk-ant-...">
+      </label>
+      <p class="muted small">
+        Your key, goal and food log are stored only in this browser. When you ask for an estimate,
+        the photo is sent to the Anthropic API to analyze it, and nothing else leaves your device.
+        Get a key at console.anthropic.com.
+      </p>
+      <div class="row">
+        <button value="cancel" formnovalidate>Cancel</button>
+        <button value="save" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
