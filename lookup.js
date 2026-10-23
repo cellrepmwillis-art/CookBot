@@ -20,6 +20,8 @@ export function lookup(query, limit = 25) {
   return { ...parsed, results: parsed.results.map((plan) => withSize(plan, size)) };
 }
 
+// how: "exact" (every word matched a food name), "loose" (after dropping
+// filler words like "large") or "closest" (some words matched nothing).
 function lookupSized(query, limit) {
   const { text, fullText, quantity, modifiers } = parseQuery(query);
   const plain = (foods) => foods.map((food) => applyModifiers(food, [], findFood));
@@ -27,12 +29,20 @@ function lookupSized(query, limit) {
   // USDA sometimes lists the modified version itself ("WHOPPER, no cheese").
   if (modifiers.length) {
     const exact = searchFoods(fullText, limit, { strict: true });
-    if (exact.length) return { results: plain(exact), quantity, unmatched: [] };
+    if (exact.length) return { results: plain(exact), quantity, unmatched: [], how: "exact" };
   }
 
-  let foods = text ? searchFoods(text, limit) : [];
+  let how = "exact";
+  let foods = text ? searchFoods(text, limit, { strict: true }) : [];
+  if (text && !foods.length) {
+    how = "loose";
+    foods = searchFoods(text, limit);
+  }
   let unmatched = [];
-  if (text && !foods.length) ({ foods, unmatched } = closestFoods(text, limit));
+  if (text && !foods.length) {
+    how = "closest";
+    ({ foods, unmatched } = closestFoods(text, limit));
+  }
   // "Meat only" turns several burgers into the same patties; list each once.
   const seen = new Set();
   const results = foods.map((food) => applyModifiers(food, modifiers, findFood)).filter((plan) => {
@@ -41,16 +51,21 @@ function lookupSized(query, limit) {
     seen.add(key);
     return true;
   });
-  return { results, quantity, unmatched: [...new Set(unmatched)] };
+  return { results, quantity, unmatched: [...new Set(unmatched)], how };
 }
 
-// Several foods at once: "chicken breast and rice", "coffee with milk, bagel".
+const SEPARATOR = /\s*(?:,|\+|&|\band\b|\bplus\b)\s*/i;
+
+// Several foods at once: "chicken breast and rice", "2 eggs, toast and coffee".
+// "with" isn't a separator: "latte with oat milk" is one drink.
 // Used only when the whole phrase isn't one food ("mac and cheese" is).
 //   { single } or { parts: [{ text, ...lookup(text) }] }
 export function lookupMeal(query, limit = 25) {
   const single = lookup(query, limit);
-  if (single.results.length && !single.unmatched.length) return { single };
-  const texts = query.split(/\s*(?:,|\+|&|\band\b|\bwith\b|\bplus\b)\s*/i).map((t) => t.trim()).filter(Boolean);
+  const listed = SEPARATOR.test(query);
+  // A list stays whole only when it's a food's actual name ("macaroni and cheese").
+  if (single.results.length && (listed ? single.how === "exact" : !single.unmatched.length)) return { single };
+  const texts = query.split(SEPARATOR).map((t) => t.trim()).filter(Boolean);
   if (texts.length < 2) return { single };
   const parts = texts.map((text) => ({ text, ...lookup(text, limit) }));
   if (parts.some((p) => !p.results.length)) return { single };

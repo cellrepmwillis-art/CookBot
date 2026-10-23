@@ -58,6 +58,12 @@ export function parseQuery(query) {
     quantity = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4 }[lead[1]] ?? Number(lead[1]);
     q = q.slice(lead[0].length - 1);
   }
+  // "pizza 3": a small number at the end is a count too.
+  const tail = !lead && q.match(/\s(\d{1,2})\s*$/);
+  if (tail && Number(tail[1]) < 20) {
+    quantity = Number(tail[1]);
+    q = q.slice(0, tail.index) + " ";
+  }
   if (HALF.test(q)) {
     quantity *= 0.5;
     q = q.replace(HALF, " ");

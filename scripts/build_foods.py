@@ -8,7 +8,8 @@ fda-nutrient-database npm package (data/ folder) or from USDA directly.
 
 Output: a JSON array of [name, kcal per 100 g, [[portion, grams], ...], common],
 where common is 1 for everyday foods that should rank first in search (2 for
-the first choice among them, e.g. brewed coffee over espresso for "coffee").
+the first choice among them, e.g. brewed coffee over espresso for "coffee",
+and 3 for meals, which rank first only when their name's words were typed).
 Coffee-shop lattes, which USDA doesn't list, are added from USDA milk values.
 """
 import json
@@ -33,6 +34,9 @@ COMMON = {
     "Avocados, raw, all commercial varieties",
     "Bagels, plain, enriched, with calcium propionate (includes onion, poppy, sesame)",
     "Bananas, raw",
+    "Bread, white, commercially prepared, toasted",
+    "Fast foods, submarine sandwich, cold cut on white bread with lettuce and tomato",
+    "PIZZA HUT 14\" Cheese Pizza, Hand-Tossed Crust",
     "Beef, ground, 80% lean meat / 20% fat, patty, cooked, broiled (Hamburger)",
     "Beverages, carbonated, cola, regular (soft drink, pop, soda)",
     "Beverages, coffee, brewed, espresso, restaurant-prepared",
@@ -90,9 +94,10 @@ EXTRA_PORTIONS = {
     "Beverages, tea, black, brewed, prepared with tap water": [["1 cup (8 fl oz)", 237], ["1 mug (12 fl oz)", 355]],
     "Chicken, broilers or fryers, breast, meat only, cooked, roasted": [["1/2 breast, bone and skin removed", 86], ["3 oz", 85]],
     "Egg, whole, cooked, hard-boiled": [["1 large", 50]],
+    "Bread, white, commercially prepared, toasted": [["1 slice", 23], ["2 slices", 46]],
     "Water, bottled, generic": [["1 bottle (16.9 fl oz)", 500]],
 }
-FIRST_CHOICE = {"Beverages, coffee, brewed, prepared with tap water"}
+FIRST_CHOICE = {"Beverages, coffee, brewed, prepared with tap water", "Rice, white, long-grain, regular, enriched, cooked"}
 
 # Lattes: espresso plus milk. Milk per cup size is estimated so a 2% latte
 # matches typical coffee-shop numbers (about 130 cal for a 16 oz iced latte,
@@ -136,6 +141,74 @@ def lattes(kcal_of):
     cups = [["Regular, 16 oz cup (about 12 fl oz coffee, the rest ice)", 355], ["Small, 12 oz cup", 266], ["Large, 20 oz cup", 444]]
     foods.append(["Coffee, iced, black", coffee, cups, 1])
     foods.append(["Cold brew coffee, black", coffee, cups, 1])
+    return foods
+
+
+# Everyday meals USDA's SR28 doesn't list, built from its ingredients:
+# name, serving label, [(USDA food, grams), ...]. The part of the name before
+# any comma is what must be typed for the meal to rank first ("burrito bowl").
+WHITE_BREAD = "Bread, white, commercially prepared (includes soft bread crumbs)"  # 29 g a slice
+WHEAT_BREAD = "Bread, whole-wheat, commercially prepared"  # 32 g a slice
+CHICKEN = "Chicken, broilers or fryers, breast, meat only, cooked, roasted"
+WHITE_RICE = "Rice, white, long-grain, regular, enriched, cooked"
+MILK_2 = "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D"
+COFFEE = "Beverages, coffee, brewed, prepared with tap water"
+AMERICAN = "Cheese, pasteurized process, American, without added vitamin D"  # 21 g a slice
+MAYO = "Salad dressing, mayonnaise, regular"
+LETTUCE = "Lettuce, iceberg (includes crisphead types), raw"
+TOMATO = "Tomatoes, red, ripe, raw, year round average"
+CHEDDAR = "Cheese, cheddar"
+SALSA = "Sauce, salsa, ready-to-serve"
+BEANS = "Beans, black, mature seeds, cooked, boiled, without salt"
+FLOUR_TORTILLA = "Tortillas, ready-to-bake or -fry, flour, refrigerated"
+PASTA = "Pasta, cooked, enriched, without added salt (macaroni product, spaghetti, elbow macaroni, rotini, lasagna, farfalle, shells, penne)"
+MARINARA = "Sauce, pasta, spaghetti/marinara, ready-to-serve"
+RANCH = "Salad dressing, ranch dressing, regular"
+SALAD = [(LETTUCE, 100), (TOMATO, 60), ("Cucumber, with peel, raw", 50), ("Carrots, raw", 30)]
+MEALS = [
+    ("Cereal with milk", "1 bowl (1 cup cereal, 1/2 cup 2% milk)", [("Cereals ready-to-eat, GENERAL MILLS, CHEERIOS", 28), (MILK_2, 122)]),
+    ("Oatmeal, made with water", "1 bowl (1/2 cup dry oats)", [("Cereals, oats, regular and quick, not fortified, dry (oatmeal, old-fashioned oats, rolled oats)", 40)]),
+    ("Oatmeal, made with milk", "1 bowl (1/2 cup dry oats, 1 cup 2% milk)", [("Cereals, oats, regular and quick, not fortified, dry (oatmeal, old-fashioned oats, rolled oats)", 40), (MILK_2, 244)]),
+    ("Eggs and toast", "2 fried eggs, 2 slices buttered toast", [("Egg, whole, cooked, fried", 92), (WHITE_BREAD, 58), ("Butter, salted", 10)]),
+    ("Peanut butter and jelly sandwich (PB&J)", "1 sandwich", [(WHITE_BREAD, 58), ("Peanut butter, smooth style, with salt", 32), ("Jams and preserves", 20)]),
+    ("Turkey sandwich", "1 sandwich", [(WHITE_BREAD, 58), ("Turkey breast, sliced, prepackaged", 56), (MAYO, 14), (LETTUCE, 10), (TOMATO, 20)]),
+    ("Turkey and cheese sandwich", "1 sandwich", [(WHITE_BREAD, 58), ("Turkey breast, sliced, prepackaged", 56), (AMERICAN, 21), (MAYO, 14), (LETTUCE, 10)]),
+    ("Ham and cheese sandwich", "1 sandwich", [(WHITE_BREAD, 58), ("Ham, sliced, regular (approximately 11% fat)", 56), (AMERICAN, 21), (MAYO, 14)]),
+    ("Grilled cheese, sandwich", "1 sandwich", [(WHITE_BREAD, 58), (AMERICAN, 42), ("Butter, salted", 10)]),
+    ("BLT, sandwich", "1 sandwich", [("Bread, white, commercially prepared, toasted", 46), ("Pork, cured, bacon, cooked, baked", 24), (LETTUCE, 10), (TOMATO, 30), (MAYO, 14)]),
+    ("Avocado toast", "1 slice", [(WHEAT_BREAD, 32), ("Avocados, raw, all commercial varieties", 50)]),
+    ("Bagel with cream cheese", "1 bagel, 2 tbsp cream cheese", [("Bagels, plain, enriched, with calcium propionate (includes onion, poppy, sesame)", 99), ("Cheese, cream", 29)]),
+    ("Greek yogurt with granola", "1 container, 1/4 cup granola", [("Yogurt, Greek, plain, nonfat", 170), ("Cereals ready-to-eat, granola, homemade", 30)]),
+    ("Protein shake, made with water", "1 scoop whey", [("Beverages, Protein powder whey based", 32)]),
+    ("Protein shake, made with milk", "1 scoop whey, 1 cup 2% milk", [("Beverages, Protein powder whey based", 32), (MILK_2, 244)]),
+    ("Chicken and rice", "1 plate (5 oz chicken breast, 1 cup rice)", [(CHICKEN, 140), (WHITE_RICE, 158)]),
+    ("Salmon with rice and broccoli", "1 plate (5 oz salmon, 1 cup rice, 1/2 cup broccoli)", [("Fish, salmon, Atlantic, farmed, cooked, dry heat", 140), (WHITE_RICE, 158), ("Broccoli, cooked, boiled, drained, without salt", 78)]),
+    ("Steak and potato", "1 plate (6 oz sirloin, baked potato, 1 tbsp butter)", [("Beef, top sirloin, steak, separable lean and fat, trimmed to 0\" fat, all grades, cooked, broiled (Sirloin strip, Sirloin steak)", 170), ("Potatoes, baked, flesh and skin, without salt", 173), ("Butter, salted", 14)]),
+    ("Salad, garden, with ranch", "1 bowl, 2 tbsp ranch", SALAD + [(RANCH, 30)]),
+    ("Salad, grilled chicken, with ranch", "1 bowl, 3 oz chicken, 2 tbsp ranch", SALAD + [(CHICKEN, 85), (RANCH, 30)]),
+    ("Spaghetti with meat sauce", "1 plate (1 1/2 cups pasta)", [(PASTA, 186), (MARINARA, 132), ("Beef, ground, 85% lean meat / 15% fat, crumbles, cooked, pan-browned (ground round, hamburger)", 56)]),
+    ("Spaghetti with marinara", "1 plate (1 1/2 cups pasta)", [(PASTA, 186), (MARINARA, 132)]),
+    ("Tacos, beef", "2 tacos", [("Tortillas, ready-to-bake or -fry, corn, without added salt", 52), ("Beef, ground, 80% lean meat / 20% fat, crumbles, cooked, pan-browned (hamburger)", 70), (CHEDDAR, 20), (LETTUCE, 20), (SALSA, 30)]),
+    ("Burrito bowl, chicken", "1 bowl (rice, chicken, beans, cheese, salsa)", [(WHITE_RICE, 150), (CHICKEN, 113), (BEANS, 86), (CHEDDAR, 28), (SALSA, 60), (LETTUCE, 30)]),
+    ("Burrito, chicken", "1 burrito", [(FLOUR_TORTILLA, 100), (WHITE_RICE, 100), (CHICKEN, 113), (BEANS, 86), (CHEDDAR, 28), (SALSA, 30)]),
+    ("Cheese quesadilla", "1 quesadilla", [(FLOUR_TORTILLA, 70), (CHEDDAR, 56)]),
+    ("Hamburger, homemade", "1 burger", [("Beef, ground, 80% lean meat / 20% fat, patty, cooked, broiled (Hamburger)", 77), ("Rolls, hamburger or hotdog, plain", 44), ("Catsup (Ketchup)", 17), (LETTUCE, 10), (TOMATO, 20)]),
+    ("Cheeseburger, homemade", "1 burger", [("Beef, ground, 80% lean meat / 20% fat, patty, cooked, broiled (Hamburger)", 77), ("Rolls, hamburger or hotdog, plain", 44), (AMERICAN, 21), ("Catsup (Ketchup)", 17), (LETTUCE, 10)]),
+    ("Coffee with milk", "1 mug (12 oz coffee, 2 oz 2% milk)", [(COFFEE, 355), (MILK_2, 60)]),
+    ("Coffee with cream", "1 mug (12 oz coffee, 2 tbsp half and half)", [(COFFEE, 355), ("Cream, fluid, half and half", 30)]),
+    ("Coffee with cream and sugar", "1 mug (12 oz coffee, 2 tbsp half and half, 2 tsp sugar)", [(COFFEE, 355), ("Cream, fluid, half and half", 30), ("Sugars, granulated (sucrose)", 8.4)]),
+]
+
+
+def meals(kcal_of):
+    foods = []
+    for name, serving, parts in MEALS:
+        missing = [n for n, _ in parts if n not in kcal_of]
+        if missing:
+            sys.exit(f"Unknown ingredients in {name}: {missing}")
+        grams = sum(g for _, g in parts)
+        kcal = sum(kcal_of[n] * g / 100 for n, g in parts)
+        foods.append([name, round(kcal / grams * 100), [[serving, round(grams, 1)]], 3])
     return foods
 
 
@@ -193,7 +266,8 @@ def main(src):
     missing = (COMMON | EXTRA_PORTIONS.keys() | LATER_PORTIONS.keys()) - names
     if missing:
         sys.exit(f"Unknown foods in COMMON/EXTRA_PORTIONS: {sorted(missing)}")
-    foods += lattes({f[0]: f[1] for f in foods})
+    kcal_of = {f[0]: f[1] for f in foods}
+    foods += lattes(kcal_of) + meals(kcal_of)
     foods.sort(key=lambda f: f[0].lower())
     json.dump(foods, sys.stdout, separators=(",", ":"))
 

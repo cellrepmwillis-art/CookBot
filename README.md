@@ -1,24 +1,21 @@
 # CookBot
 
-A calorie counter that runs on your phone. Type what you ate or drank, pick how much, and it subtracts the calories from your daily goal. The count resets at 3:00am local time every day.
+A calorie counter that runs on your phone. Type what you ate or drank the way you'd say it, tap **Subtract**, and it's taken off your daily goal. There are no lists to pick from: the app chooses the closest food or foods behind the scenes. The count resets at 3:00am local time every day.
 
-- **Free food search:** a built-in list of 8,200 foods and drinks from USDA's nutrient database, including fast-food chains like McDonald's, Burger King, Wendy's and Pizza Hut. Typing "2 eggs" or "can of coke" finds the food and fills in the count. Then choose a portion, like "1 medium" or "1 can", and the calories update. This works offline and costs nothing.
-- **Packaged and fitness products:** about 60,000 US products from Open Food Facts with their label serving sizes. That includes fitness and natural-food brands like fairlife, Core Power, Barebells, Premier Protein, Quest, Built, Ghost, Celsius, Kodiak, Oikos Pro, Siete, Primal Kitchen and Thrive Market's own brand, plus the 40,000 most-scanned other US products.
-- **Barcode scanning:** tap **Scan a barcode** and point the camera at a package. About 86,000 barcodes are built in, so scanning works offline. Phones with a built-in barcode reader (Android Chrome) use it, and others (iPhone Safari) use the bundled ZXing reader. If the camera isn't available, you can photograph the barcode instead. If a product isn't in the built-in list, an optional **Look up online** button asks Open Food Facts for it. That's free, needs no account, and sends only the barcode number. Products found this way are saved, so they work offline next time.
-- **Several foods at once:** "chicken breast and rice" or "2 eggs, toast and coffee" gives an **Add all** button plus choices for each part. Names like "macaroni and cheese" stay whole.
-- **Everyday phrasing:** "big mac meat only", "only the meat", "no bun", "protein style", "whopper no cheese", "extra cheese", "half a sandwich" and nicknames like "mickey d's" or "bk" all work. Modifiers are applied using USDA values for the parts. For example, a Big Mac's meat is counted as two regular patties, and each adjustment is shown on the item so you can see the math. If USDA lists the modified item itself, like a Big Mac without sauce, that entry is used directly. If the app doesn't understand a word, it shows the closest match and tells you which word it skipped. If it can't apply a change, such as "pizza no cheese", it says so instead of guessing.
-- **Coffee-shop drinks:** espresso by the shot (about 3 cal), and hot or iced lattes with whole, 2%, skim, oat, almond or soy milk in 12, 16 or 20 oz. Milk amounts are estimated so a 16 oz 2% latte matches typical coffee-shop numbers. Each size shows the milk it assumes. "Extra shot" or "add a shot" adds a shot, and "large iced latte" picks the large size.
-- **My foods:** anything you enter yourself with a name, like a Sheetz order, is saved. Searching "sheetz" finds it next time, and entering the same name again updates the number.
-- **Recent foods** show up when you tap the search box, for quick re-adding.
-- **Manual entries** for when you already know the number.
-- **Optional photo estimates:** if you add your own Anthropic API key, you can photograph a meal and get an itemized estimate. This is the only feature that costs money, a few cents per photo.
-- **Daily goal** that you set. The ring shows calories left, and turns red when you go over.
-- **3am reset:** anything you log before 3am counts toward the previous day, so a late-night snack stays with the day it belongs to.
-- **No accounts and no syncing with other apps.** The only network requests are the optional online barcode lookup and the optional photo estimates. Your goal, food log and API key are stored only in your browser's local storage. The app keeps 30 days of entries.
+- **Type it any way:** "sheetz iced latte regular with an extra shot made with oat milk" logs one regular iced oat-milk latte plus a shot, about 137 cal. A small "≈ 137 cal" preview appears as you type.
+- **Lists:** "2 eggs, toast and coffee" logs each part. Names that contain "and", like "macaroni and cheese", stay whole.
+- **Words it doesn't know are skipped:** restaurants whose menus aren't in the data, like Sheetz, Wawa, Chipotle or Starbucks, are ignored, so "wawa hoagie" logs a sub sandwich and "chipotle burrito bowl" a chicken burrito bowl.
+- **Changes and sizes:** "meat only", "no bun", "extra cheese", "extra shot", "half a", counts ("2 eggs", "pizza 3") and sizes ("large iced latte", "medium fries").
+- **Your own numbers:** "sheetz special 300", "snack 250 cal" or just "300" logs exactly that. Tap any entry to change its calories. The app remembers the words with your number, so typing them again uses it.
+- **One question, only when needed:** if nothing at all matches, the app asks about how many calories.
+- **What it knows:** about 8,200 USDA foods, 60,000 packaged products from Open Food Facts (fairlife, Core Power, Barebells, Premier Protein, Quest, Thrive Market and many more), lattes and coffee drinks, and about 30 everyday meals like a turkey sandwich, a burrito bowl or cereal with milk.
+- **Barcode scanning:** tap **Scan a barcode** and the product is logged. About 86,000 barcodes are built in, so it works offline. Unknown products offer an optional free lookup on Open Food Facts, which sends only the barcode number.
+- **Optional photo estimates:** with your own Anthropic API key, a photo is estimated and logged. This is the only feature that costs money, a few cents per photo.
+- **No accounts and no syncing with other apps.** Your goal, food log and API key are stored only in your browser's local storage. The app keeps 30 days of entries.
 
 ## Food data
 
-The food list comes from the USDA National Nutrient Database for Standard Reference, Release 28 (2015), which is public domain. `scripts/build_foods.py` converts USDA's ABBREV.txt and FOOD_DES.txt files into `foods.json`. It leaves out baby foods and school-lunch commodity items, ranks about 50 everyday foods first in search, and adds common portions USDA's abbreviated file leaves out, such as a medium banana or a shot of espresso. It also adds lattes and black iced coffee, which USDA doesn't list. These are calculated from USDA milk and coffee values. Oat milk uses 50 cal per 100 ml, the median of 106 oat milks in Open Food Facts. Fast-food items reflect the menus of the time, so newer menu items aren't included. For those, enter the calories from the restaurant's website yourself.
+The food list comes from the USDA National Nutrient Database for Standard Reference, Release 28 (2015), which is public domain. `scripts/build_foods.py` converts USDA's ABBREV.txt and FOOD_DES.txt files into `foods.json`. It leaves out baby foods and school-lunch commodity items, ranks about 50 everyday foods first in search, and adds common portions USDA's abbreviated file leaves out, such as a medium banana or a shot of espresso. It also adds lattes, black iced coffee and about 30 everyday meals, which USDA doesn't list. These are calculated from USDA milk and coffee values. Oat milk uses 50 cal per 100 ml, the median of 106 oat milks in Open Food Facts. Fast-food items reflect the menus of the time, so newer menu items aren't included. For those, enter the calories from the restaurant's website yourself.
 
 ### Packaged products
 
@@ -57,7 +54,8 @@ python3 -m http.server 8000
 | `app.js` | Logging, totals, photo resizing, local storage |
 | `day.js` | The 3am day boundary |
 | `foods.js`, `foods.json` | Offline food search and the USDA food list |
-| `modifiers.js`, `lookup.js` | Understanding "meat only", "no bun", "extra cheese", counts and nicknames |
+| `resolve.js` | Turns typed text into logged calories, picking the closest foods |
+| `modifiers.js`, `lookup.js` | Understanding "meat only", "no bun", "extra shot", counts, sizes, lists and nicknames |
 | `scripts/build_foods.py` | Rebuilds `foods.json` from the USDA SR28 files |
 | `branded.json`, `scripts/build_branded.py` | Packaged products from Open Food Facts, and the script that builds them |
 | `barcode.js` | Barcode scanning, barcode matching and the optional online lookup |
@@ -66,4 +64,4 @@ python3 -m http.server 8000
 | `vendor/anthropic-sdk-0.131.0.js` | The Anthropic TypeScript SDK, bundled into one file |
 | `vendor/zxing-0.23.0.js` | The ZXing barcode reader (Apache License 2.0), bundled into one file |
 
-Tests for the day boundary, food search, modifiers, branded products and barcodes: `node --test`
+Tests for the day boundary, food search, modifiers, typed orders, branded products and barcodes: `node --test`

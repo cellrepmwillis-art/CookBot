@@ -32,49 +32,39 @@
     </section>
 
     <section class="card">
-      <label class="search">
-        <span class="visually-hidden">Search foods and drinks</span>
-        <input id="search" type="search" placeholder="What did you eat or drink?" autocomplete="off" enterkeyhint="search">
-      </label>
-      <p id="search-hint" class="muted small" hidden></p>
-      <ul id="search-results" class="results"></ul>
-      <button id="scan-btn" class="scan-btn">▥ Scan a barcode</button>
-      <div class="secondary-actions">
-        <button id="manual-add" class="link-btn">Enter calories yourself</button>
+      <form id="add-form" class="add">
+        <label class="search">
+          <span class="visually-hidden">What did you eat or drink?</span>
+          <input id="search" type="text" placeholder="What did you eat or drink?" autocomplete="off" autocapitalize="off" enterkeyhint="done">
+        </label>
+        <button id="subtract" class="primary" type="submit">Subtract</button>
+      </form>
+      <p id="estimate" class="muted small estimate" aria-live="polite"></p>
+      <div class="extras">
+        <button id="scan-btn" class="link-btn" type="button">▥ Scan a barcode</button>
         <label id="photo-btn" class="link-btn" for="photo-input">📷 Estimate from a photo</label>
         <input id="photo-input" type="file" accept="image/*" hidden>
       </div>
     </section>
 
     <section id="review" class="card" hidden>
-      <div id="photo-step" hidden>
-        <img id="preview" alt="Your meal photo">
-        <label class="field">
-          <span>Anything the photo doesn't show? (optional)</span>
-          <input id="note" type="text" placeholder="e.g. large size, oat milk, ate half">
-        </label>
-        <button id="estimate-btn" class="primary">Estimate calories (uses your API key)</button>
-        <p id="status" class="status" role="status"></p>
+      <img id="preview" alt="Your meal photo">
+      <label class="field">
+        <span>Anything the photo doesn't show? (optional)</span>
+        <input id="note" type="text" placeholder="e.g. large size, oat milk, ate half">
+      </label>
+      <div class="row">
+        <button id="photo-cancel" type="button">Cancel</button>
+        <button id="estimate-btn" class="primary" type="button">Estimate and subtract</button>
       </div>
-
-      <div id="result" hidden>
-        <h2>This meal</h2>
-        <p class="muted small">Search above to add more. Adjust any number before adding.</p>
-        <ul id="items" class="items"></ul>
-        <button id="add-item" class="link-btn">+ add an item</button>
-        <p id="ai-notes" class="muted small"></p>
-        <div class="total-row"><span>Total</span><strong id="estimate-total">0</strong></div>
-        <div class="row">
-          <button id="cancel-btn">Cancel</button>
-          <button id="confirm-btn" class="primary">Subtract from today</button>
-        </div>
-      </div>
+      <p id="status" class="status" role="status"></p>
     </section>
 
     <section class="card">
       <h2>Today</h2>
       <ul id="log" class="log"></ul>
       <p id="log-empty" class="muted">Nothing logged yet today.</p>
+      <p id="log-tip" class="muted small" hidden>Tap an entry to change its calories. The app remembers the change for next time.</p>
     </section>
   </main>
 
@@ -87,7 +77,6 @@
     <p id="scan-status" class="status" role="status"></p>
     <div id="scan-actions" class="scan-actions">
       <button id="scan-online" class="primary" hidden>Look up online (free)</button>
-      <button id="scan-manual" hidden>Enter calories yourself</button>
       <label id="scan-photo-btn" class="link-btn" for="scan-photo">Take a photo of the barcode instead</label>
       <input id="scan-photo" type="file" accept="image/*" capture="environment" hidden>
       <button id="scan-close">Close</button>
@@ -106,7 +95,7 @@
         <input id="key-input" type="password" autocomplete="off" placeholder="sk-ant-...">
       </label>
       <p class="muted small">
-        Searching foods, scanning barcodes and entering calories is free and works offline. Your goal and food log
+        Typing foods, scanning barcodes and entering calories is free and works offline. Your goal and food log
         are stored only in this browser. If a scanned product isn't in the built-in list, you can choose to look it
         up on Open Food Facts, which sends only the barcode number. Photo estimates are optional: they send the photo to the
         Anthropic API using your own key from console.anthropic.com, which bills a few cents per photo.
