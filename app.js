@@ -7,7 +7,7 @@ import { resolve, planItem } from "./resolve.js";
 import { barcodeKeys, startScanner, decodePhoto, lookupOnline } from "./barcode.js";
 
 // Shown at the bottom of Settings, to check which version a phone is running.
-const VERSION = "2026-10-23 · 8:30 PM";
+const VERSION = "2026-10-23 · 9:00 PM";
 const STORAGE_KEY = "cookbot";
 const KEEP_DAYS = 30;
 const DEFAULT_GOAL = 2000;
@@ -540,6 +540,71 @@ $("settings").addEventListener("close", () => {
   state.profile = profileFromForm();
   save();
   render();
+});
+
+// ---- Backup and restore ----
+// A JSON file of everything except the API key, saved to the phone or handed
+// to the share sheet (Google Drive, Docs, email...). Nothing is uploaded by
+// the app itself.
+
+const BACKUP_APP = "cookbot";
+
+function backupFile() {
+  const { apiKey, ...data } = state;
+  const json = JSON.stringify({ app: BACKUP_APP, savedAt: new Date().toISOString(), data });
+  return new File([json], `cookbot-backup-${dayKey()}.json`, { type: "application/json" });
+}
+
+const backupStatus = (text) => { $("backup-status").textContent = text; };
+
+$("backup-btn").addEventListener("click", () => {
+  save();
+  $("backup-where").hidden = !$("backup-where").hidden;
+  // Without a share sheet (most desktops), saving to the phone is the only choice.
+  $("backup-share").hidden = !navigator.canShare?.({ files: [backupFile()] });
+});
+
+$("backup-phone").addEventListener("click", () => {
+  const file = backupFile();
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(file);
+  link.download = file.name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 10000);
+  $("backup-where").hidden = true;
+  backupStatus(`Saved ${file.name} to your Downloads.`);
+});
+
+$("backup-share").addEventListener("click", async () => {
+  const file = backupFile();
+  try {
+    await navigator.share({ files: [file], title: "CookBot backup" });
+    $("backup-where").hidden = true;
+    backupStatus(`Sent ${file.name}.`);
+  } catch (error) {
+    if (error.name !== "AbortError") backupStatus("Couldn't share the backup. Try Save to this phone.");
+  }
+});
+
+$("restore-btn").addEventListener("click", () => $("restore-input").click());
+
+$("restore-input").addEventListener("change", async () => {
+  const file = $("restore-input").files[0];
+  $("restore-input").value = "";
+  if (!file) return;
+  let backup;
+  try {
+    backup = JSON.parse(await file.text());
+  } catch {}
+  const data = backup?.app === BACKUP_APP ? backup.data : null;
+  if (!data || typeof data.goal !== "number" || !Array.isArray(data.entries)) {
+    backupStatus("That file isn't a CookBot backup.");
+    return;
+  }
+  const when = new Date(backup.savedAt).toLocaleDateString();
+  if (!confirm(`Replace everything on this phone with the backup from ${when}?`)) return;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...data, apiKey: state.apiKey }));
+  location.reload();
 });
 
 // ---- Start ----

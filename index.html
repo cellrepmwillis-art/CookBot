@@ -150,6 +150,19 @@
         and Open Food Facts (openfoodfacts.org), available under the Open Database License.
         Packaged-product values are entered by Open Food Facts volunteers, so check the label if a number looks off.
       </p>
+      <fieldset class="profile backup">
+        <legend>Backup (for a new phone or cleared browser)</legend>
+        <div class="backup-row">
+          <button type="button" id="backup-btn">Backup cooks</button>
+          <button type="button" id="restore-btn">Restore cooks</button>
+        </div>
+        <div class="backup-row" id="backup-where" hidden>
+          <button type="button" class="link-btn" id="backup-phone">Save to this phone</button>
+          <button type="button" class="link-btn" id="backup-share">Google Drive or another app…</button>
+        </div>
+        <input id="restore-input" type="file" accept="application/json,.json" hidden>
+        <p class="muted small" id="backup-status">Saves your goal, profile, streak, log and remembered foods to a file. Your API key isn't included.</p>
+      </fieldset>
       <p class="muted small" id="version"></p>
       <div class="row">
         <button value="cancel" formnovalidate>Cancel</button>
