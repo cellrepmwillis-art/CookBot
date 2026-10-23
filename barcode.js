@@ -143,7 +143,8 @@ export async function decodePhoto(file) {
 // ---- Optional online lookup ----
 
 // Asks Open Food Facts about a barcode. Returns a food in the app's format
-// ([name, kcal per 100 g, portions, 0, barcode]) or null if it isn't known.
+// ([name, kcal per 100 g, portions, 0, barcode, null, macros]) or null if it
+// isn't known.
 export async function lookupOnline(code) {
   const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,nutriments,serving_size,serving_quantity`;
   const response = await fetch(url);
@@ -158,5 +159,7 @@ export async function lookupOnline(code) {
   const display = brand && !name.toLowerCase().includes(brand.toLowerCase()) ? `${brand} ${name}` : name;
   const grams = Number(product.serving_quantity);
   const portions = grams > 0 ? [[product.serving_size || `1 serving (${grams} g)`, grams]] : [];
-  return [display, Math.round(kcal), portions, 0, barcodeKeys(code)[0]];
+  const macros = ["proteins_100g", "carbohydrates_100g", "fat_100g"].map((k) => Number(n[k]));
+  const food = [display, Math.round(kcal), portions, 0, barcodeKeys(code)[0]];
+  return macros.every((m) => Number.isFinite(m)) ? [...food, null, macros] : food;
 }

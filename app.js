@@ -6,7 +6,7 @@ import { resolve, planItem } from "./resolve.js";
 import { barcodeKeys, startScanner, decodePhoto, lookupOnline } from "./barcode.js";
 
 // Shown at the bottom of Settings, to check which version a phone is running.
-const VERSION = "2026-10-23 · 6:00 PM";
+const VERSION = "2026-10-23 · 6:30 PM";
 const STORAGE_KEY = "cookbot";
 const KEEP_DAYS = 30;
 const DEFAULT_GOAL = 2000;
@@ -79,7 +79,36 @@ function render() {
   $("log-empty").hidden = entries.length > 0;
   $("log-tip").hidden = entries.length === 0;
 
+  renderMacros(entries);
   renderStreak(eaten);
+}
+
+// ---- Macros ----
+
+function renderMacros(entries) {
+  const known = entries.filter((e) => e.macros);
+  $("macros").hidden = !known.length;
+  if (!known.length) return;
+  const sum = (key) => Math.round(known.reduce((total, e) => total + e.macros[key], 0));
+  $("macros").textContent = `Protein ${sum("protein")} g · Carbs ${sum("carbs")} g · Fat ${sum("fat")} g`;
+}
+
+// Entries logged before macros were tracked: worked out again from the
+// words typed, scaled to the calories logged.
+async function fillInMacros() {
+  if (!(await foodsReady)) return;
+  let changed = false;
+  for (const entry of todaysEntries()) {
+    if (entry.macros !== undefined || !entry.typed || !entry.label) continue;
+    const result = resolve(entry.label);
+    const macros = result && sumMacros(result.items);
+    entry.macros = macros && result.total ? scaleMacros(macros, entry.total / result.total) : null;
+    changed = true;
+  }
+  if (changed) {
+    save();
+    render();
+  }
 }
 
 // ---- Streak ----
@@ -170,10 +199,25 @@ function editEntry(entry) {
   const answer = prompt(`Calories for "${entry.label ?? "this entry"}"`, entry.total);
   const total = Math.round(Number(answer));
   if (answer === null || answer.trim() === "" || !(total >= 0)) return;
+  // The macros follow the new number.
+  if (entry.macros) entry.macros = entry.total ? scaleMacros(entry.macros, total / entry.total) : null;
   entry.total = total;
   if (entry.typed) rememberCalories(entry.label, total);
   save();
   render();
+}
+
+// Protein, carbs and fat of some items, in grams, or null if none are known
+// (typed numbers, photo estimates). A rough split, not label-exact.
+function sumMacros(items) {
+  const known = items.map((i) => i.macros).filter(Boolean);
+  if (!known.length) return null;
+  const sum = (key) => Math.round(known.reduce((total, m) => total + m[key], 0) * 10) / 10;
+  return { protein: sum("protein"), carbs: sum("carbs"), fat: sum("fat") };
+}
+
+function scaleMacros(macros, factor) {
+  return macros && { protein: macros.protein * factor, carbs: macros.carbs * factor, fat: macros.fat * factor };
 }
 
 function logEntry({ label, items, total, thumb, typed = false }) {
@@ -184,8 +228,9 @@ function logEntry({ label, items, total, thumb, typed = false }) {
     day: dayKey(new Date(now)),
     label,
     typed,
-    items: items.map(({ food, ...rest }) => rest),
+    items: items.map(({ food, macros, ...rest }) => rest),
     total,
+    macros: sumMacros(items),
     thumb,
   });
   save();
@@ -446,6 +491,7 @@ $("settings").addEventListener("close", () => {
 
 render();
 scheduleReset();
+fillInMacros();
 if (isFirstRun) openSettings();
 
 if ("serviceWorker" in navigator) {

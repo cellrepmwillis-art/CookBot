@@ -6,7 +6,8 @@ fda-nutrient-database npm package (data/ folder) or from USDA directly.
 
     python3 scripts/build_foods.py path/to/sr28/data > foods.json
 
-Output: a JSON array of [name, kcal per 100 g, [[portion, grams], ...], common],
+Output: a JSON array of [name, kcal per 100 g, [[portion, grams], ...], common,
+null, null, [protein, carbs, fat in grams per 100 g]],
 where common is 1 for everyday foods that should rank first in search (2 for
 the first choice among them, e.g. brewed coffee over espresso for "coffee",
 and 3 for meals, which rank first only when their name's words were typed).
@@ -136,6 +137,25 @@ ML_PER_FL_OZ = 29.57
 SHOTS_GRAMS = 60  # two shots of espresso
 
 
+# Protein, carbs and fat in grams per 100 g, by food name; filled from
+# ABBREV.txt, and for lattes and meals added up from their ingredients.
+macros_of = {}
+# Oat milk isn't in SR28: a typical carton (about 3 g protein, 16 g carbs,
+# 5 g fat per cup).
+OAT_MILK_MACROS = (1.25, 6.7, 2.1)
+
+
+def mix(parts):
+    """Macros per 100 g of a mix of [(name or macros, grams), ...]."""
+    total = sum(g for _, g in parts)
+    sums = [0.0, 0.0, 0.0]
+    for food, grams in parts:
+        macros = macros_of[food] if isinstance(food, str) else food
+        for i in range(3):
+            sums[i] += macros[i] * grams / 100
+    return tuple(x / total * 100 for x in sums)
+
+
 def lattes(kcal_of):
     """Latte foods for each temperature and milk, sized in grams of milk plus espresso."""
     foods = []
@@ -151,6 +171,8 @@ def lattes(kcal_of):
             # Regular first: it's what most people order.
             portions = [portions[1], portions[0], portions[2]]
             foods.append([f"Latte, {temp}, {milk}", round(total_kcal / total_grams * 100), portions, 1])
+            regular_milk = sizes[1][1] * ML_PER_FL_OZ * 1.03
+            macros_of[foods[-1][0]] = mix([(usda_name or OAT_MILK_MACROS, regular_milk), (ESPRESSO, SHOTS_GRAMS)])
     # Black iced coffee and cold brew: brewed coffee, about 2 cal per 16 oz.
     coffee = kcal_of["Beverages, coffee, brewed, prepared with tap water"]
     cups = [["Regular, 16 oz cup (about 12 fl oz coffee, the rest ice)", 355], ["Small, 12 oz cup", 266], ["Large, 20 oz cup", 444]]
@@ -165,6 +187,8 @@ def lattes(kcal_of):
     # Ranked first only when "sweet tea" is typed (common 3, like the meals).
     foods.append(["Sweet tea, iced", round(per_cup / 252 * 100), tea_cups, 3])
     foods.append(["Cold brew coffee, black", coffee, cups, 1])
+    macros_of["Coffee, iced, black"] = macros_of["Cold brew coffee, black"] = macros_of["Beverages, coffee, brewed, prepared with tap water"]
+    macros_of["Sweet tea, iced"] = mix([("Beverages, tea, black, brewed, prepared with tap water", 237), ("Sugars, granulated (sucrose)", 15)])
     return foods
 
 
@@ -234,6 +258,7 @@ def meals(kcal_of):
         grams = sum(g for _, g in parts)
         kcal = sum(kcal_of[n] * g / 100 for n, g in parts)
         foods.append([name, round(kcal / grams * 100), [[serving, round(grams, 1)]], 3])
+        macros_of[name] = mix(parts)
     return foods
 
 
@@ -275,6 +300,7 @@ def main(src):
         descriptions[ndb] = name
 
     foods = []
+    macros_of.clear()
     for row in read(src / "ABBREV.txt"):
         ndb, kcal = row[0], row[3]
         if ndb not in descriptions or kcal == "":
@@ -295,6 +321,7 @@ def main(src):
                 portions.insert(0, ["1 oz", 28.4])
             portions.sort(key=big_cup)
         foods.append([name, round(float(kcal)), portions, 2 if name in FIRST_CHOICE else int(name in COMMON)])
+        macros_of[name] = tuple(float(row[i] or 0) for i in (4, 7, 5))  # protein, carbohydrate, fat
 
     names = {f[0] for f in foods}
     missing = (COMMON | EXTRA_PORTIONS.keys() | LATER_PORTIONS.keys()) - names
@@ -303,6 +330,9 @@ def main(src):
     kcal_of = {f[0]: f[1] for f in foods}
     foods += lattes(kcal_of) + meals(kcal_of)
     for f in foods:
+        macros = macros_of.get(f[0])
+        if macros:
+            f += [None, None, [round(m, 1) for m in macros]]
         f[0] = RENAME.get(f[0], f[0])
     foods.sort(key=lambda f: f[0].lower())
     json.dump(foods, sys.stdout, separators=(",", ":"))

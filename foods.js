@@ -4,7 +4,8 @@
 // Each food is [name, kcal per 100 g, [[portion, grams], ...], common],
 // where common is 0, 1 (everyday), 2 (first choice) or 3 (a meal, see build_foods.py),
 // branded foods add a fifth item: their barcodes, space-separated, without
-// leading zeros, and foods the user entered themselves add a sixth: "mine".
+// leading zeros; foods the user entered themselves add a sixth: "mine"; and
+// a seventh, when known, is [protein, carbs, fat] in grams per 100 g.
 
 // Everyday words that USDA names differently.
 const SYNONYMS = {
@@ -145,7 +146,7 @@ export function addFoods(list) {
     }
     foods.push(food);
     // USDA's names (no barcodes) are edited, so their words are trusted spellings.
-    const weight = food[4] === undefined ? TRUSTED_COUNT : 1;
+    const weight = typeof food[4] !== "string" ? TRUSTED_COUNT : 1;
     for (const w of words(food[0])) if (w.length >= 3 && !/\d/.test(w)) vocabulary.set(w, (vocabulary.get(w) ?? 0) + weight);
     const firstSegment = normalizedWords(food[0].split(",")[0]);
     index.push({ words: normalizedWords(food[0]), firstSegment, required: firstSegment.filter((w) => !IGNORED.has(w) && w !== "without") });
@@ -155,6 +156,14 @@ export function addFoods(list) {
 }
 
 export const findFood = (name) => byName?.get(name);
+
+// Protein, carbs and fat for some calories of a food, in grams, or null.
+export function macrosFor(food, calories) {
+  const macros = food[6];
+  if (!macros || !food[1]) return null;
+  const grams = (calories / food[1]) * 100;
+  return { protein: (macros[0] * grams) / 100, carbs: (macros[1] * grams) / 100, fat: (macros[2] * grams) / 100 };
+}
 
 // ---- Typo correction ----
 
@@ -361,7 +370,7 @@ function rank(tokens, partial = false, restaurant = false) {
     score -= nameWords.length; // prefer short, generic names
     // USDA's own entries break ties with packaged products ("quarter pounder":
     // McDonald's, not Quorn's meatless one). Meat substitutes only when named.
-    if (foods[i][4] === undefined) score += 8;
+    if (typeof foods[i][4] !== "string") score += 8;
     if (MEAT_SUBSTITUTE.test(foods[i][0]) && !tokens.some((t) => MEAT_SUBSTITUTE.test(t))) score -= 30;
     // "bojangles tenders": restaurant tenders, not frozen ones from the store.
     // Only for the food itself: "mcdonalds sweet tea" isn't their sweet 'n sour sauce.

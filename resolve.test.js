@@ -192,3 +192,17 @@ test("a measure with no number means one of it", { skip: !hasBranded && "needs b
   assert.match(names("can of coke")[0], /cola/);
   assert.match(resolve("cup of coffee").items[0].portion, /1 cup/);
 });
+
+test("a rough protein/carbs/fat split comes with each item", { skip: !hasBranded && "needs branded.json" }, () => {
+  const grams = (query) => {
+    const m = resolve(query).items.map((i) => i.macros).filter(Boolean);
+    const sum = (k) => m.reduce((t, x) => t + x[k], 0);
+    return m.length ? { protein: sum("protein"), carbs: sum("carbs"), fat: sum("fat") } : null;
+  };
+  // Labels: Premier Protein 30 g protein; 1 tbsp peanut butter ~4 g protein, 8 g fat.
+  assert.ok(Math.abs(grams("premier protein shake").protein - 30) <= 4);
+  const pb = grams("tablespoon peter pan peanut butter");
+  assert.ok(pb.fat > pb.protein && pb.fat > 6 && pb.fat < 10);
+  assert.ok(grams("two rotisserie chicken breasts").protein > 80);
+  assert.equal(grams("snack 250"), null); // a typed number has no split
+});

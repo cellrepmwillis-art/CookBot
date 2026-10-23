@@ -9,7 +9,8 @@ fat, alcohol, scans, completeness, errors, quantity, modified, categories
 
     python3 scripts/build_branded.py us.tsv > branded.json
 
-Output: a JSON array of [name, kcal per 100 g, [[portion, grams], ...], 0, barcodes],
+Output: a JSON array of [name, kcal per 100 g, [[portion, grams], ...], 0, barcodes,
+null, [protein, carbs, fat in grams per 100 g]] (the last two only when known),
 the same shape as foods.json plus barcodes: space-separated, without leading
 zeros, so UPC-A ("012345678905") and EAN-13 ("0012345678905") match.
 """
@@ -119,6 +120,7 @@ def main(path):
             kcal = number(row["kj"]) / 4.184
         if kcal is None or not 0 <= kcal <= 900:
             continue  # missing or impossible (fat is 900 kcal per 100 g)
+        raw_kcal = kcal
         if "energy" in row["errors"] or not calories_add_up(kcal, row):
             continue  # flagged by Open Food Facts, or calories don't match the macros
         brands = [tidy(b) for b in row["brands"].replace("fa!rlife", "fairlife").split(",") if tidy(b)]
@@ -157,8 +159,13 @@ def main(path):
         rank = (scans, bool(portions))
         code = row["code"].lstrip("0")
         codes = (best["codes"] if best else []) + ([code] if real_barcode(code) else [])
+        # Protein, carbs, fat per 100 g, scaled like the calories were (drinks
+        # whose per-serving numbers were typed as per-100 ml).
+        raw = [number(row[k]) for k in ("protein", "carbs", "fat")]
+        scale = kcal / raw_kcal if raw_kcal else 1
+        macros = [round(m * scale, 1) for m in raw] if None not in raw else None
         if best is None or rank > best["rank"]:
-            best = candidates[key] = {"food": [display, round(kcal), portions], "scans": scans, "priority": priority, "rank": rank}
+            best = candidates[key] = {"food": [display, round(kcal), portions], "macros": macros, "scans": scans, "priority": priority, "rank": rank}
         best["codes"] = codes
 
     chosen = [c for c in candidates.values() if c["priority"]]
@@ -166,6 +173,8 @@ def main(path):
     chosen += [c for c in others[:TOP_N] if c["scans"] > 0]
     for c in chosen:
         c["food"] += [0, " ".join(dict.fromkeys(c["codes"][:8]))]
+        if c["macros"]:
+            c["food"] += [None, c["macros"]]
     foods = sorted((c["food"] for c in chosen), key=lambda f: f[0].lower())
     print(f"{len(rows)} rows, {len(candidates)} unique, {sum(c['priority'] for c in chosen)} priority-brand, {len(foods)} kept", file=sys.stderr)
     json.dump(foods, sys.stdout, separators=(",", ":"), ensure_ascii=False)

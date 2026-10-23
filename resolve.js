@@ -1,6 +1,6 @@
 // Turns whatever was typed into calories, with no questions asked: the
 // closest food (or foods) is picked behind the scenes.
-import { caloriesFor, portionsFor, matchedWords, isRestaurantQuery, isRestaurantFood, correctTypos } from "./foods.js";
+import { caloriesFor, portionsFor, matchedWords, isRestaurantQuery, isRestaurantFood, correctTypos, macrosFor } from "./foods.js";
 import { lookupMeal } from "./lookup.js";
 
 // Calories for `units` of a plan (see modifiers.js), e.g. 1 Big Mac, meat only.
@@ -14,11 +14,14 @@ const amount = (n) => String(Number(n.toFixed(2))); // 2/3 -> "0.67"
 export function planItem(plan, quantity) {
   const portion = plan.portion ?? portionsFor(plan.food)[0];
   const units = quantity * plan.count;
+  const calories = planCalories(plan, portion, units);
   return {
     name: plan.name,
     portion: `${amount(units)} × ${portion.label}`,
-    calories: planCalories(plan, portion, units),
+    calories,
     food: plan.source,
+    // Split by the food that's counted (the patties of a "meat only" Big Mac).
+    macros: macrosFor(plan.food, calories),
   };
 }
 
@@ -74,7 +77,8 @@ function consensusItem(group, text) {
   if (group.counted && top.countable) {
     // Pieces: the middle calories per piece ("4-piece": strips from several chains).
     const items = similar.map((plan) => planItem(plan, group.quantity));
-    return { name, portion: items[0].portion, calories: median(items.map((i) => i.calories)), food: top.source };
+    const calories = median(items.map((i) => i.calories));
+    return { name, portion: items[0].portion, calories, food: top.source, macros: macrosFor(top.food, calories) };
   }
   // Otherwise servings differ (an 8 oz shake, a 16 oz can), so take the middle
   // calories per 100 g and the middle serving size. Only products like the top
@@ -94,7 +98,8 @@ function consensusItem(group, text) {
   const units = group.quantity * top.count;
   const label = top.portion?.label ?? `1 serving (${Math.round(grams)} g)`;
   const shown = like.includes(top) ? top : like[0]; // named after a product that was averaged
-  return { name: `${shown.name} (typical of ${like.length} similar)`, portion: `${amount(units)} × ${label}`, calories: Math.round((density * grams * units) / 100), food: shown.source };
+  const calories = Math.round((density * grams * units) / 100);
+  return { name: `${shown.name} (typical of ${like.length} similar)`, portion: `${amount(units)} × ${label}`, calories, food: shown.source, macros: macrosFor(shown.food, calories) };
 }
 
 // "sheetz special 300", "snack 250 cal", or just "300". A small number at
