@@ -5,6 +5,8 @@ import { applyModifiers } from "./modifiers.js";
 import { resolve, planItem } from "./resolve.js";
 import { barcodeKeys, startScanner, decodePhoto, lookupOnline } from "./barcode.js";
 
+// Shown at the bottom of Settings, to check which version a phone is running.
+const VERSION = "2026-10-23 · 4:30 PM";
 const STORAGE_KEY = "cookbot";
 const KEEP_DAYS = 30;
 const DEFAULT_GOAL = 2000;
@@ -421,6 +423,8 @@ $("estimate-btn").addEventListener("click", async () => {
 
 // ---- Settings ----
 
+$("version").textContent = `Version ${VERSION}`;
+
 function openSettings() {
   $("goal-input").value = state.goal;
   $("key-input").value = state.apiKey;
@@ -445,5 +449,6 @@ scheduleReset();
 if (isFirstRun) openSettings();
 
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js").catch(() => {});
+  // updateViaCache: check sw.js itself for changes on every open, too.
+  navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch(() => {});
 }

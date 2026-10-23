@@ -1,6 +1,6 @@
 // Caches the app so it opens instantly and works offline. Only photo estimates
 // need a connection; searching foods and logging work without one.
-const CACHE = "cookbot-v13";
+const CACHE = "cookbot-v14";
 const SHELL = [
   "./",
   "index.html",
@@ -27,7 +27,11 @@ const OPTIONAL = ["branded.json"];
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE)
-      .then((cache) => cache.addAll(SHELL).then(() => Promise.all(OPTIONAL.map((url) => cache.add(url).catch(() => {})))))
+      // "reload": a new version downloads fresh files, not the browser's cached ones.
+      .then((cache) => {
+        const fresh = (url) => new Request(url, { cache: "reload" });
+        return cache.addAll(SHELL.map(fresh)).then(() => Promise.all(OPTIONAL.map((url) => cache.add(fresh(url)).catch(() => {}))));
+      })
       .then(() => self.skipWaiting()),
   );
 });
@@ -45,8 +49,11 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return; // API calls are POSTs and always go to the network
   if (new URL(request.url).origin === self.location.origin) {
     // Network first for our own files so updates show up; fall back to cache offline.
+    // Ask the server every time (unchanged files come back as a quick "not
+    // modified"), instead of trusting the browser's 10-minute cache, so
+    // updates show up on the next open.
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: "no-cache" })
         .then((response) => {
           const copy = response.clone();
           caches.open(CACHE).then((cache) => cache.put(request, copy));
