@@ -1,5 +1,7 @@
 import { dayKey, nextReset } from "./day.js";
-import { loadFoods, searchFoods, quantityFrom, portionsFor, caloriesFor } from "./foods.js";
+import { loadFoods, findFood, portionsFor, caloriesFor } from "./foods.js";
+import { applyModifiers } from "./modifiers.js";
+import { lookup } from "./lookup.js";
 
 const STORAGE_KEY = "cookbot";
 const KEEP_DAYS = 30;
@@ -116,23 +118,36 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) rend
 
 const foodsReady = loadFoods().catch(() => null);
 
-function perPortionText(food) {
-  const [portion] = portionsFor(food);
-  return `${caloriesFor(food, portion.grams, 1).toLocaleString()} cal per ${portion.label}`;
+// Portions offered for a plan (see modifiers.js), its default first.
+const planPortions = (plan) => (plan.portion ? [plan.portion, ...portionsFor(plan.food)] : portionsFor(plan.food));
+
+// Calories for `quantity` of what was ordered, e.g. 1 Big Mac, meat only.
+function planCalories(plan, portion, units) {
+  const adjustment = plan.adjustments.reduce((sum, a) => sum + a.calories, 0);
+  return Math.max(0, caloriesFor(plan.food, portion.grams, units) + Math.round(adjustment * (units / plan.count)));
 }
 
-function resultButton(food, quantity) {
+// What changed, e.g. "no bun −123 cal · Counted as 2 regular patties of beef".
+const planDetails = (plan) => [
+  ...plan.adjustments.map((a) => `${a.label} ${a.calories < 0 ? "−" : "+"}${Math.abs(a.calories)} cal`),
+  ...plan.notes,
+].join(" · ");
+
+function resultButton(plan, quantity) {
   const li = document.createElement("li");
   const button = document.createElement("button");
   const name = document.createElement("span");
   name.className = "food-name";
-  name.textContent = food[0];
+  name.textContent = plan.name;
   const info = document.createElement("span");
   info.className = "muted small";
-  info.textContent = perPortionText(food);
+  const [portion] = planPortions(plan);
+  const units = quantity * plan.count;
+  const amount = units === 1 ? `per ${portion.label}` : `for ${units} × ${portion.label}`;
+  info.textContent = [`${planCalories(plan, portion, units).toLocaleString()} cal ${amount}`, planDetails(plan)].filter(Boolean).join(" · ");
   button.append(name, info);
   button.addEventListener("click", () => {
-    addFood(food, quantity);
+    addFood(plan, quantity);
     $("search").value = "";
     showSearchResults();
     $("search").blur();
@@ -149,7 +164,8 @@ async function showSearchResults() {
   if (!query.trim()) {
     // Empty box: offer recently logged foods for quick re-adding.
     const focused = document.activeElement === $("search");
-    list.replaceChildren(...(focused ? state.recent.map((food) => resultButton(food, 1)) : []));
+    const recent = focused ? state.recent.map((food) => applyModifiers(food, [], findFood)) : [];
+    list.replaceChildren(...recent.map((plan) => resultButton(plan, 1)));
     hint.hidden = !(focused && state.recent.length);
     hint.textContent = "Recent";
     return;
@@ -162,10 +178,12 @@ async function showSearchResults() {
   }
   if (query !== $("search").value) return; // a newer keystroke is already being handled
 
-  const results = searchFoods(query);
-  list.replaceChildren(...results.map((food) => resultButton(food, quantityFrom(query))));
-  hint.hidden = results.length > 0;
-  hint.textContent = "No matches. Try a simpler word, like \"chicken\" or \"soda\", or tap \"Enter calories yourself\".";
+  const { results, quantity, unmatched } = lookup(query);
+  list.replaceChildren(...results.map((plan) => resultButton(plan, quantity)));
+  hint.hidden = results.length > 0 && !unmatched.length;
+  hint.textContent = !results.length
+    ? "No matches. Try a simpler word, like \"chicken\" or \"soda\", or tap \"Enter calories yourself\"."
+    : `Didn't recognize ${unmatched.map((w) => `"${w}"`).join(", ")}, so these are the closest matches.`;
 }
 
 $("search").addEventListener("input", showSearchResults);
@@ -301,16 +319,16 @@ function calorieInput(value) {
 }
 
 // A food from the USDA list: pick how many and which portion, calories follow.
-function addFood(food, quantity = 1) {
+function addFood(plan, quantity = 1) {
   const li = document.createElement("li");
-  li.food = food;
-  const portions = portionsFor(food);
+  li.plan = plan;
+  const portions = planPortions(plan);
 
   const nameWrap = document.createElement("div");
   nameWrap.className = "name-wrap";
   const label = document.createElement("div");
   label.className = "food-label";
-  label.textContent = food[0];
+  label.textContent = plan.name;
 
   const amount = document.createElement("div");
   amount.className = "amount";
@@ -320,17 +338,24 @@ function addFood(food, quantity = 1) {
   qty.min = "0";
   qty.step = "any";
   qty.inputMode = "decimal";
-  qty.value = quantity;
+  qty.value = quantity * plan.count;
   qty.setAttribute("aria-label", "How many");
   const select = document.createElement("select");
   select.setAttribute("aria-label", "Portion");
   portions.forEach((p, i) => select.add(new Option(p.label, i)));
   amount.append(qty, select);
   nameWrap.append(label);
+  const details = planDetails(plan);
+  if (details) {
+    const note = document.createElement("div");
+    note.className = "muted small";
+    note.textContent = details;
+    nameWrap.append(note);
+  }
 
   const cal = calorieInput(0);
   const recalc = () => {
-    cal.value = caloriesFor(food, portions[select.value].grams, Number(qty.value) || 0);
+    cal.value = planCalories(plan, portions[select.value], Number(qty.value) || 0);
     updateTotal();
   };
   qty.addEventListener("input", recalc);
@@ -370,13 +395,13 @@ function addCustomItem(item) {
 function readItems() {
   return [...$("items").children].map((li) => {
     const calories = Math.max(0, Math.round(Number(li.querySelector(".cal").value) || 0));
-    if (li.food) {
+    if (li.plan) {
       const select = li.querySelector("select");
       return {
-        name: li.food[0],
+        name: li.plan.name,
         portion: `${li.querySelector(".qty").value} × ${select.options[select.selectedIndex].text}`,
         calories,
-        food: li.food,
+        food: li.plan.source,
       };
     }
     return {

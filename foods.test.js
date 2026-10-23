@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { setFoods, searchFoods, quantityFrom, portionsFor, caloriesFor } from "./foods.js";
+import { setFoods, searchFoods, portionsFor, caloriesFor } from "./foods.js";
 
 setFoods(JSON.parse(readFileSync(new URL("./foods.json", import.meta.url))));
 const top = (query) => searchFoods(query, 1)[0]?.[0];
@@ -25,12 +25,6 @@ test("size words and counts are ignored when they'd block a match", () => {
 
 test("unknown foods return nothing", () => {
   assert.deepEqual(searchFoods("qwxyz"), []);
-});
-
-test("a leading count becomes the quantity", () => {
-  assert.equal(quantityFrom("2 eggs"), 2);
-  assert.equal(quantityFrom("1.5 cups rice"), 1.5);
-  assert.equal(quantityFrom("banana"), 1);
 });
 
 test("calories scale with portion and quantity", () => {

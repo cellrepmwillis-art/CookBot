@@ -15,6 +15,13 @@ const SYNONYMS = {
   doughnut: "doughnuts",
   mcdonalds: "mcdonald",
   "mcdonald's": "mcdonald",
+  "mickey d's": "mcdonald",
+  "mickey ds": "mcdonald",
+  mcds: "mcdonald",
+  "mcd's": "mcdonald",
+  maccas: "mcdonald",
+  bk: "burger king",
+  wendys: "wendy",
   pb: "peanut butter",
   "pb&j": "peanut butter",
   ketchup: "catsup",
@@ -36,14 +43,17 @@ let foods = null;
 let index = null;
 
 const words = (text) => text.toLowerCase().replace(/[^a-z0-9%]+/g, " ").trim().split(" ").filter(Boolean);
+// "no" and "without" mean the same thing in USDA names ("WHOPPER, no cheese").
+const normalizedWords = (text) => words(text).map((w) => (w === "no" ? "without" : w));
+let byName = null;
 
 export function setFoods(list) {
   foods = list;
-  index = list.map(([name]) => {
-    const lower = name.toLowerCase();
-    return { words: words(name), firstSegment: words(lower.split(",")[0]) };
-  });
+  index = list.map(([name]) => ({ words: normalizedWords(name), firstSegment: normalizedWords(name.split(",")[0]) }));
+  byName = new Map(list.map((food) => [food[0], food]));
 }
+
+export const findFood = (name) => byName?.get(name);
 
 export async function loadFoods() {
   if (!foods) setFoods(await (await fetch("foods.json")).json());
@@ -57,7 +67,7 @@ function expand(query, dropIgnored) {
   }
   let tokens = words(q).filter((w) => !/^\d+$/.test(w));
   if (dropIgnored) tokens = tokens.filter((w) => !IGNORED.has(w));
-  return tokens.flatMap((w) => words(SYNONYMS[w] ?? w));
+  return tokens.flatMap((w) => normalizedWords(SYNONYMS[w] ?? w));
 }
 
 // A query word matches a name word exactly or as a plural (best), at its start
@@ -80,38 +90,53 @@ function tokenScore(nameWords, token) {
   return best;
 }
 
-export function searchFoods(query, limit = 25) {
+// strict: every word must match, including size words like "extra".
+export function searchFoods(query, limit = 25, { strict = false } = {}) {
   if (!foods) return [];
-  const results = rank(expand(query, false));
-  return (results.length ? results : rank(expand(query, true))).slice(0, limit).map(([, i]) => foods[i]);
+  let results = rank(expand(query, false));
+  if (!results.length && !strict) results = rank(expand(query, true));
+  return results.slice(0, limit).map(([, i]) => foods[i]);
 }
 
-function rank(tokens) {
+// When no food matches every word: the foods matching the most words, and the
+// words nothing matched (slang, typos, brand nicknames).
+export function closestFoods(query, limit = 25) {
+  if (!foods) return { foods: [], unmatched: [] };
+  const tokens = expand(query, false);
+  const results = rank(tokens, true);
+  if (!results.length) return { foods: [], unmatched: tokens };
+  const best = results[0][2];
+  const top = results.filter((r) => r[2] === best).slice(0, limit);
+  const matched = new Set(top.flatMap(([, i]) => tokens.filter((t) => tokenScore(index[i].words, t))));
+  const unmatched = tokens.filter((t) => !matched.has(t) && !IGNORED.has(t));
+  return { foods: top.map(([, i]) => foods[i]), unmatched };
+}
+
+function rank(tokens, partial = false) {
   if (!tokens.length) return [];
   const results = [];
   for (let i = 0; i < foods.length; i++) {
     const { words: nameWords, firstSegment } = index[i];
     let score = 0;
-    let ok = true;
+    let hits = 0;
+    let matched = 0; // like hits, but "large" counts less than "fries"
     for (const token of tokens) {
       const s = tokenScore(nameWords, token);
-      if (!s) { ok = false; break; }
-      score += s * 10 + (tokenScore(firstSegment, token) ? 15 : 0);
+      if (!s && !partial) break;
+      if (s) {
+        hits++;
+        matched += IGNORED.has(token) ? 0.5 : 1;
+      }
+      score += s * 10 + (s && tokenScore(firstSegment, token) ? 15 : 0);
     }
-    if (!ok) continue;
+    if (partial ? !hits : hits < tokens.length) continue;
     if (wordMatches(nameWords[0], tokens[0]) >= 2) score += 10;
     if (foods[i][2].length) score += 5;
     if (foods[i][3]) score += 25;
     score -= nameWords.length; // prefer short, generic names
-    results.push([score, i]);
+    results.push([score, i, matched]);
   }
-  return results.sort((a, b) => b[0] - a[0]);
-}
-
-// A count at the start of the search, e.g. 2 for "2 eggs" or 1.5 for "1.5 cups rice".
-export function quantityFrom(query) {
-  const match = query.trim().match(/^(\d+(?:\.\d+)?|\.\d+)\s/);
-  return match ? Number(match[1]) : 1;
+  return results.sort((a, b) => b[2] - a[2] || b[0] - a[0]);
 }
 
 // Portion choices for a food: its USDA household measures plus weight units.

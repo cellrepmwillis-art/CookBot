@@ -3,6 +3,7 @@
 A calorie counter that runs on your phone. Type what you ate or drank, pick how much, and it subtracts the calories from your daily goal. The count resets at 3:00am local time every day.
 
 - **Free food search:** a built-in list of 8,200 foods and drinks from USDA's nutrient database, including fast-food chains like McDonald's, Burger King, Wendy's and Pizza Hut. Typing "2 eggs" or "can of coke" finds the food and fills in the count. Then choose a portion, like "1 medium" or "1 can", and the calories update. This works offline and costs nothing.
+- **Everyday phrasing:** "big mac meat only", "only the meat", "no bun", "protein style", "whopper no cheese", "extra cheese", "half a sandwich" and nicknames like "mickey d's" or "bk" all work. Modifiers are applied using USDA values for the parts. For example, a Big Mac's meat is counted as two regular patties, and each adjustment is shown on the item so you can see the math. If USDA lists the modified item itself, like a Big Mac without sauce, that entry is used directly. If the app doesn't understand a word, it shows the closest match and tells you which word it skipped. If it can't apply a change, such as "pizza no cheese", it says so instead of guessing.
 - **Recent foods** show up when you tap the search box, for quick re-adding.
 - **Manual entries** for when you already know the number.
 - **Optional photo estimates:** if you add your own Anthropic API key, you can photograph a meal and get an itemized estimate. This is the only feature that costs money, a few cents per photo.
@@ -41,9 +42,10 @@ python3 -m http.server 8000
 | `app.js` | Logging, totals, photo resizing, local storage |
 | `day.js` | The 3am day boundary |
 | `foods.js`, `foods.json` | Offline food search and the USDA food list |
+| `modifiers.js`, `lookup.js` | Understanding "meat only", "no bun", "extra cheese", counts and nicknames |
 | `scripts/build_foods.py` | Rebuilds `foods.json` from the USDA SR28 files |
 | `estimate.js` | The optional photo estimate (Claude API call) |
 | `sw.js`, `manifest.webmanifest` | Offline caching and home-screen install |
 | `vendor/anthropic-sdk-0.131.0.js` | The Anthropic TypeScript SDK, bundled into one file |
 
-Tests for the day boundary and food search: `node --test`
+Tests for the day boundary, food search and modifiers: `node --test`
