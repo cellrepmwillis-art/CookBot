@@ -64,13 +64,20 @@ export function parseQuery(query) {
     .replace(new RegExp(`\\b(${Object.keys(NUMBER_WORDS).join("|")})\\b(?=\\s*-?\\s*[a-z])`, "g"), (w) => NUMBER_WORDS[w]);
   let quantity = 1;
   let counted = false; // the quantity is a count of pieces: "4-piece", "4 tenders"
-  const pieces = q.match(/\b(\d{1,3})\s*-?\s*(?:piece|pieces|pc|pcs|ct|count)\b/);
+  // "single espresso shot", "double shot of espresso": a number of shots.
+  const shots = q.match(/\b(single|double|triple|quad)\s+(?:shots?\s+(?:of\s+)?)?espresso(?:\s+shots?)?\b/);
+  if (shots) {
+    quantity = { single: 1, double: 2, triple: 3, quad: 4 }[shots[1]];
+    counted = true;
+    q = q.slice(0, shots.index) + " espresso " + q.slice(shots.index + shots[0].length);
+  }
+  const pieces = !shots && q.match(/\b(\d{1,3})\s*-?\s*(?:piece|pieces|pc|pcs|ct|count)\b/);
   if (pieces) {
     quantity = Number(pieces[1]);
     counted = true;
     q = q.slice(0, pieces.index) + " " + q.slice(pieces.index + pieces[0].length);
   }
-  const lead = !pieces && q.match(new RegExp(`^\\s*(\\d+(?:\\.\\d+)?|\\.\\d+|an?|one|two|three|four)\\s(?!${UNITS})`));
+  const lead = !shots && !pieces && q.match(new RegExp(`^\\s*(\\d+(?:\\.\\d+)?|\\.\\d+|an?|one|two|three|four)\\s(?!${UNITS})`));
   if (lead) {
     quantity = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4 }[lead[1]] ?? Number(lead[1]);
     counted = !/^an?$/.test(lead[1]);
@@ -78,14 +85,14 @@ export function parseQuery(query) {
   }
   // "kfc 3 strips": a number before a food is a count, unless it's a
   // measurement ("6 inch sub", "16 oz latte").
-  const middle = !pieces && !lead && q.match(new RegExp(`\\s(\\d{1,2})\\s+(?!${UNITS})(?=[a-z])`));
+  const middle = !shots && !pieces && !lead && q.match(new RegExp(`\\s(\\d{1,2})\\s+(?!${UNITS})(?=[a-z])`));
   if (middle) {
     quantity = Number(middle[1]);
     counted = true;
     q = q.slice(0, middle.index) + " " + q.slice(middle.index + middle[0].length);
   }
   // "pizza 3": a small number at the end is a count too.
-  const tail = !pieces && !lead && !middle && q.match(/\s(\d{1,2})\s*$/);
+  const tail = !shots && !pieces && !lead && !middle && q.match(/\s(\d{1,2})\s*$/);
   if (tail && Number(tail[1]) < 20) {
     quantity = Number(tail[1]);
     counted = true;

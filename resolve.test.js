@@ -102,3 +102,12 @@ test("misspelled food words are corrected; real words are left alone", () => {
   assert.match(names("6 piece mcnuggets")[0], /McNUGGETS/); // not "corrected" to "nuggets"
   assert.equal(resolve("qzx"), null); // nothing close: still nothing
 });
+
+test("espresso by the shot, even with coffee capsules and canned drinks in the data", { skip: !hasBranded && "needs branded.json" }, () => {
+  // "single espresso shot" once matched a 0-cal Nespresso "Single Origin" capsule.
+  for (const [query, shots] of [["single espresso shot", 1], ["single shot espresso", 1], ["espresso", 1], ["double espresso", 2], ["double shot of espresso", 2], ["triple espresso", 3]]) {
+    const r = resolve(query);
+    assert.match(r.items[0].name, /espresso, restaurant-prepared$/, query);
+    assert.ok(r.total >= 2 * shots && r.total <= 3 * shots, `${query}: ${r.total}`);
+  }
+});
