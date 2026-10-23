@@ -47,6 +47,8 @@ const SYNONYMS = {
   oatmeal: "oats",
   steak: "beef",
   skinless: "meat only",
+  drpepper: "dr pepper",
+  "dr. pepper": "dr pepper",
   // Cooked at home, these are all about the same as roasted chicken breast.
   "grilled chicken breast": "chicken breast",
   "baked chicken breast": "chicken breast",
@@ -217,12 +219,30 @@ function correctWord(word) {
   return best;
 }
 
-// The search with misspelled words corrected. Punctuation and numbers are kept.
+// "redbull" -> "red bull", "drpepper" -> "dr pepper": two known words run together.
+function splitWord(word) {
+  let best = null;
+  let bestCount = 0;
+  for (let i = 2; i <= word.length - 3; i++) {
+    const [a, b] = [word.slice(0, i), word.slice(i)];
+    const count = Math.min(vocabulary.get(a) ?? 0, vocabulary.get(b) ?? 0);
+    if (count >= TRUSTED_COUNT && count > bestCount) [best, bestCount] = [`${a} ${b}`, count];
+  }
+  return best;
+}
+
+// The search with misspelled words corrected and run-together words split.
+// Punctuation and numbers are kept.
 export function correctTypos(query) {
   if (!vocabulary) return query;
   return query.replace(/[a-z]+/gi, (w) => {
-    const fixed = correctWord(w.toLowerCase());
-    return fixed === w.toLowerCase() ? w : fixed;
+    const word = w.toLowerCase();
+    if (word.length >= 6 && (vocabulary.get(word) ?? 0) < TRUSTED_COUNT) {
+      const split = splitWord(word);
+      if (split) return split;
+    }
+    const fixed = correctWord(word);
+    return fixed === word ? w : fixed;
   });
 }
 

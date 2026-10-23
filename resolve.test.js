@@ -131,5 +131,19 @@ test("store names don't pull in store-brand products of a different food", { ski
 });
 
 test("plurals of known words aren't 'corrected'", { skip: !hasBranded && "needs branded.json" }, () => {
-  assert.match(names("2 big macs")[0], /Big Mac/);
+  assert.match(names("2 big macs")[0], /big mac/i);
+});
+
+test("energy drinks: regular, not sugar-free, at the size typed", { skip: !hasBranded && "needs branded.json" }, () => {
+  // Labels: Red Bull 110 per 8.4 oz, 160 per 12 oz; Monster 210 per 16 oz. Within 10%.
+  const within = (query, label) => {
+    const t = total(query);
+    assert.ok(Math.abs(t - label) <= label * 0.1, `${query}: ${t}, label ${label}`);
+  };
+  within("8oz redbull can", 105); // "8oz redbull can" once logged 12 cal (sugar-free versions)
+  within("8.4 oz red bull", 110);
+  within("12 oz red bull", 160);
+  within("16 oz monster", 210);
+  assert.ok(total("sugar free red bull") < 20);
+  within("drpepper", 150);
 });

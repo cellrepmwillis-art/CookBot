@@ -37,17 +37,20 @@ function consensusItem(group, text) {
   // Exact picks stay exact: the app's own everyday foods, meals and lattes,
   // the user's saved numbers, and orders changed with "meat only" or a size.
   const curated = top.food[3] || top.food[5] === "mine";
-  const changed = top.adjustments.length || top.count !== 1 || (top.portion && !top.countable);
+  // A portion picked from what was typed ("4 pieces", "8 oz") still averages.
+  const picked = (plan) => !plan.portion || plan.countable || plan.sized;
+  const changed = top.adjustments.length || top.count !== 1 || !picked(top);
   if (curated || changed) return planItem(top, group.quantity);
 
   const words = matchedWords(text, top.food);
   const restaurant = isRestaurantQuery(text) && isRestaurantFood(top.food);
   const kids = /\bkids?'?\b/i.test(text);
   // Raw or meatless versions only when asked for: "chicken tenders" are cooked chicken.
-  const unusual = /\b(raw|uncooked|unprepared|dry mix|meatless|chicken-free|meat-free|plant-based|vegan)\b/i;
+  // Sugar-free, diet and light versions too: a "red bull" is the regular one.
+  const unusual = /\b(raw|uncooked|unprepared|dry mix|meatless|chicken-free|meat-free|plant-based|vegan|sugar[- ]?free|sugarfree|zero|diet|light|lite|sf)\b/i;
   const askedUnusual = unusual.test(text);
   let similar = group.results.filter((plan) =>
-    !plan.adjustments.length && plan.count === 1 && !(plan.portion && !plan.countable) &&
+    !plan.adjustments.length && plan.count === 1 && picked(plan) &&
     matchedWords(text, plan.food) === words &&
     (!restaurant || isRestaurantFood(plan.food)) &&
     (kids || !/\bkids?'?\b/i.test(plan.food[0])) &&
@@ -57,9 +60,30 @@ function consensusItem(group, text) {
   similar = similar.slice(0, MAX_SIMILAR);
   if (similar.length < 2) return planItem(top, group.quantity);
 
-  const items = similar.map((plan) => planItem(plan, group.quantity));
-  const calories = median(items.map((i) => i.calories));
-  return { name: `${top.name} (typical of ${items.length} similar)`, portion: items[0].portion, calories, food: top.source };
+  const name = `${top.name} (typical of ${similar.length} similar)`;
+  if (group.counted && top.countable) {
+    // Pieces: the middle calories per piece ("4-piece": strips from several chains).
+    const items = similar.map((plan) => planItem(plan, group.quantity));
+    return { name, portion: items[0].portion, calories: median(items.map((i) => i.calories)), food: top.source };
+  }
+  // Otherwise servings differ (an 8 oz shake, a 16 oz can), so take the middle
+  // calories per 100 g and the middle serving size. Only products like the top
+  // one count: "barebells" milkshakes aren't averaged with Barebells bars.
+  // Products within 2x of a reference density; the reference is the top match
+  // or the middle of all of them, whichever has more company, so one
+  // mislabeled top entry (a "Redbull" that's really sugar-free) can't decide.
+  const near = (ref) => similar.filter((plan) => (ref ? plan.food[1] >= ref / 2 && plan.food[1] <= ref * 2 : plan.food[1] < 5));
+  const byTop = near(top.food[1]);
+  const byMiddle = near(median(similar.map((plan) => plan.food[1])));
+  const like = byMiddle.length > byTop.length ? byMiddle : byTop;
+  const density = median(like.map((plan) => plan.food[1]));
+  // A size that was typed ("8 oz") wins; else the usual labeled serving.
+  const servings = like.filter((plan) => plan.food[2].length).map((plan) => portionsFor(plan.food)[0].grams);
+  const grams = top.portion ? top.portion.grams : servings.length ? median(servings) : portionsFor(top.food)[0].grams;
+  const units = group.quantity * top.count;
+  const label = top.portion?.label ?? `1 serving (${Math.round(grams)} g)`;
+  const shown = like.includes(top) ? top : like[0]; // named after a product that was averaged
+  return { name: `${shown.name} (typical of ${like.length} similar)`, portion: `${units} × ${label}`, calories: Math.round((density * grams * units) / 100), food: shown.source };
 }
 
 // "sheetz special 300", "snack 250 cal", or just "300". A small number at

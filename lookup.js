@@ -9,16 +9,23 @@ const SIZE = /\b(small|medium|regular|large)\b/i;
 const SIZE_LABELS = { small: ["small"], medium: ["medium", "regular"], regular: ["regular", "medium"], large: ["large"] };
 
 // "16 oz latte", "6 inch sub": the portion with that measure in its label.
-const MEASURE = /\b(\d{1,2})\s*-?\s*(oz|ounces?|inch(?:es)?|in)\b/i;
+const MEASURE = /(?<![\d.])(\d{1,2}(?:\.\d+)?)\s*-?\s*(oz|ounces?|inch(?:es)?|in)\b/i;
 
 function withSize(plan, size, measure, unit) {
   if (plan.portion) return plan;
   const labels = portionsFor(plan.food);
   const portion =
     (unit && perUnit(labels, unit)) ||
-    (measure && labels.find((p) => new RegExp(`\\b${measure[1]}\\s*-?\\s*(?:fl\\.?\\s*)?${measure[2].slice(0, 2)}`, "i").test(p.label))) ||
+    (measure && labels.find((p) => new RegExp(`(?<![\\d.])${measure[1].replace(".", "\\.")}\\s*-?\\s*(?:fl\\.?\\s*)?${measure[2].slice(0, 2)}`, "i").test(p.label))) ||
+    (measure && /^o/i.test(measure[2]) && ounces(labels, Number(measure[1]))) ||
     (size && labels.find((p) => SIZE_LABELS[size].some((w) => new RegExp(`\\b${w}\\b`, "i").test(p.label))));
-  return portion ? { ...plan, portion } : plan;
+  return portion ? { ...plan, portion, sized: true } : plan;
+}
+
+// "8 oz" when no label says so: fluid ounces for drinks, weight otherwise.
+function ounces(labels, n) {
+  const drink = labels.some((p) => /\bml\b|fl\.? ?oz/i.test(p.label));
+  return { label: `${n} ${drink ? "fl oz" : "oz"}`, grams: n * (drink ? 29.57 : 28.35) };
 }
 
 // One of a household measure: "2 tbsp (32 g)" gives a 1 tbsp portion of 16 g.
