@@ -256,6 +256,9 @@ export function correctTypos(query) {
   query = query.replace(/(\d)\s*0(z|unces?)\b/gi, "$1 o$2");
   // One word, so "and" doesn't split it and "half" doesn't halve something.
   query = query.replace(/\bhalf\s*(?:and|&|n|'n'?)\s*half\b/gi, "halfnhalf");
+  // "milk with calcium", "OJ with added vitamin D": what's added to it, not a
+  // second food.
+  query = query.replace(/\b(?:with|w\/|plus|and)\s+(?:added\s+|extra\s+)?(?:calcium|vitamins?(?:\s+[a-e]\d?)?(?:\s*(?:&|and)\s*[a-e]\d?)?|d3|iron|fiber|fibre|omega[- ]?3s?|probiotics?|dha|electrolytes|lactase)\b/gi, " ");
   return query.replace(/[a-z]+/gi, (w) => {
     const word = w.toLowerCase();
     if (word.length >= 6 && (vocabulary.get(word) ?? 0) < TRUSTED_COUNT) {

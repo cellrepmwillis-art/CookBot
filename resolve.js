@@ -45,6 +45,8 @@ function servingFor(servings, size) {
   return median(sorted);
 }
 
+const FLAVORED_MILK = /\b(chocolate|strawberry|banana|vanilla|coffee|protein|shake|ice cream|cottage|sour cream)\b/i;
+
 function consensusItem(group, text) {
   const [top] = group.results;
   // Exact picks stay exact: the app's own everyday foods, meals and lattes,
@@ -62,12 +64,15 @@ function consensusItem(group, text) {
   // Sugar-free, diet and light versions too: a "red bull" is the regular one.
   const unusual = /\b(raw|uncooked|unprepared|dry mix|meatless|chicken-free|meat-free|plant-based|vegan|sugar[- ]?free|sugarfree|zero|diet|light|lite|sf|quorn|gardein|morningstar|beyond|impossible|tofurky)\b/i;
   const askedUnusual = unusual.test(text);
+  // "lactaid milk" is plain milk, not its chocolate or protein milk.
+  const plainMilk = /\bmilk\b/i.test(text) && !FLAVORED_MILK.test(text);
   let similar = group.results.filter((plan) =>
     !plan.adjustments.length && plan.count === 1 && picked(plan) &&
     matchedWords(text, plan.food) === words &&
     (!restaurant || isRestaurantFood(plan.food)) &&
     (kids || !/\bkids?'?\b/i.test(plan.food[0])) &&
-    (askedUnusual || !unusual.test(plan.food[0])));
+    (askedUnusual || !unusual.test(plan.food[0])) &&
+    (!plainMilk || !FLAVORED_MILK.test(plan.food[0])));
   // Counting pieces: only foods that come in pieces can be counted.
   if (group.counted && similar.some((plan) => plan.countable)) similar = similar.filter((plan) => plan.countable);
   similar = similar.slice(0, MAX_SIMILAR);

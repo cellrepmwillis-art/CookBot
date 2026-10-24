@@ -240,3 +240,13 @@ test("a cup of cottage cheese is two half-cup servings", () => {
   near(resolve("cup of cottage cheese", []).total, half * 2);
   near(resolve("1 cup greek yogurt", []).total, 134);
 });
+
+test("milk with calcium is one milk; plain milks aren't flavored ones", () => {
+  const r = resolve("10 oz lactaid milk with calcium", []);
+  assert.equal(r.items.length, 1);
+  assert.ok(r.total > 120 && r.total < 200, String(r.total));
+  assert.match(resolve("chocolate milk", []).items[0].name, /^Milk, chocolate/);
+  assert.match(resolve("almond milk", []).items[0].name, /^Almond milk/);
+  assert.match(resolve("oat milk", []).items[0].name, /^Oat milk/);
+  assert.match(resolve("milk", []).items[0].name, /^Milk, whole/);
+});

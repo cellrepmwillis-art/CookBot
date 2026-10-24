@@ -27,6 +27,7 @@ SKIP_GROUPS = {
 
 # Everyday foods, ranked first in search.
 COMMON = {
+    "Milk, chocolate, fluid, commercial, reduced fat, with added vitamin A and vitamin D",
     "Alcoholic beverage, beer, light",
     "Alcoholic beverage, beer, regular, all",
     "Alcoholic beverage, wine, table, red",
@@ -194,6 +195,12 @@ def lattes(kcal_of):
     foods.append(["Cold brew coffee, black", coffee, cups, 1])
     macros_of["Coffee, iced, black"] = macros_of["Cold brew coffee, black"] = macros_of["Beverages, coffee, brewed, prepared with tap water"]
     macros_of["Sweet tea, iced"] = mix([("Beverages, tea, black, brewed, prepared with tap water", 237), ("Sugars, granulated (sucrose)", 15)])
+    # Ranked first when "oat milk" is typed, not oatmeal made with milk.
+    foods.append(["Oat milk", OAT_MILK_KCAL, [["1 cup (8 fl oz)", 240]], 3])
+    macros_of["Oat milk"] = OAT_MILK_MACROS
+    almond = "Beverages, almond milk, unsweetened, shelf stable"
+    foods.append(["Almond milk, unsweetened", kcal_of[almond], [["1 cup (8 fl oz)", 240]], 3])
+    macros_of["Almond milk, unsweetened"] = macros_of[almond]
     return foods
 
 
