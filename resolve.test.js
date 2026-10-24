@@ -245,8 +245,19 @@ test("milk with calcium is one milk; plain milks aren't flavored ones", () => {
   const r = resolve("10 oz lactaid milk with calcium", []);
   assert.equal(r.items.length, 1);
   assert.ok(r.total > 120 && r.total < 200, String(r.total));
-  assert.match(resolve("chocolate milk", []).items[0].name, /^Milk, chocolate/);
+  assert.match(resolve("chocolate milk", []).items[0].name, /^Chocolate milk/);
   assert.match(resolve("almond milk", []).items[0].name, /^Almond milk/);
   assert.match(resolve("oat milk", []).items[0].name, /^Oat milk/);
   assert.match(resolve("milk", []).items[0].name, /^Milk, whole/);
+});
+
+test("nonfat, skim, fat free, 1%, 2 percent and whole milk", () => {
+  for (const q of ["nonfat milk", "non fat milk", "skim milk", "fat free milk"]) near(resolve(q, []).total, 83);
+  for (const q of ["2% milk", "2 percent milk", "two percent milk", "reduced fat milk"]) near(resolve(q, []).total, 122);
+  near(resolve("1 percent milk", []).total, 102);
+  near(resolve("whole milk", []).total, 149);
+  assert.match(resolve("lactaid nonfat milk", []).items[0].name, /Lactaid Fat Free/i);
+  assert.match(resolve("lactaid 2 percent milk", []).items[0].name, /Lactaid 2%/i);
+  assert.match(resolve("nonfat latte", []).items[0].name, /skim/);
+  assert.match(resolve("2 percent latte", []).items[0].name, /2%/);
 });

@@ -100,7 +100,7 @@ const RESTAURANT_TERMS = [
 
 // Words that mean the same food: "strips", "tenders" and "fingers" are all
 // chicken tenders, so restaurant entries named either way are found.
-const ALTERNATIVES = [["tender", "tenders", "strip", "strips", "finger", "fingers", "tenderloins"]];
+const ALTERNATIVES = [["tender", "tenders", "strip", "strips", "finger", "fingers", "tenderloins"], ["nonfat", "skim"]];
 const ALTERNATIVE_OF = new Map(ALTERNATIVES.flatMap((group) => group.map((w) => [w, group.join("|")])));
 
 // Restaurant food in the data: USDA's fast-food and restaurant entries and
@@ -121,7 +121,8 @@ const MEAT_SUBSTITUTE = /\b(quorn|gardein|morningstar|beyond|impossible|tofurky|
 let foods = null;
 let index = null;
 
-const words = (text) => text.toLowerCase().replace(/[^a-z0-9%]+/g, " ").trim().split(" ").filter(Boolean);
+// "Fat free", "nonfat" and "skim" are the same milk ("nonfat" stands for all three).
+const words = (text) => text.toLowerCase().replace(/\b(?:fat[\s-]+free|non[\s-]+fat)\b/g, "nonfat").replace(/[^a-z0-9%]+/g, " ").trim().split(" ").filter(Boolean);
 // "no" and "without" mean the same thing in USDA names ("WHOPPER, no cheese").
 const normalizedWords = (text) => words(text).map((w) => (w === "no" ? "without" : w));
 let byName = null;
@@ -256,6 +257,8 @@ export function correctTypos(query) {
   query = query.replace(/(\d)\s*0(z|unces?)\b/gi, "$1 o$2");
   // One word, so "and" doesn't split it and "half" doesn't halve something.
   query = query.replace(/\bhalf\s*(?:and|&|n|'n'?)\s*half\b/gi, "halfnhalf");
+  // "2 percent milk", "two percent", "1 %": the milkfat, not a count.
+  query = query.replace(/\b(1|2|one|two)\s*(?:%|percent|per cent|pct)(?![a-z])/gi, (_, n) => `${{ one: 1, two: 2 }[n.toLowerCase()] ?? n}%`);
   // "milk with calcium", "OJ with added vitamin D": what's added to it, not a
   // second food.
   query = query.replace(/\b(?:with|w\/|plus|and)\s+(?:added\s+|extra\s+)?(?:calcium|vitamins?(?:\s+[a-e]\d?)?(?:\s*(?:&|and)\s*[a-e]\d?)?|d3|iron|fiber|fibre|omega[- ]?3s?|probiotics?|dha|electrolytes|lactase)\b/gi, " ");

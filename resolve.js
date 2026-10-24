@@ -45,6 +45,8 @@ function servingFor(servings, size) {
   return median(sorted);
 }
 
+// A glass of milk is a cup, not a 14 oz bottle.
+const CUP_OF_MILK = 240;
 const FLAVORED_MILK = /\b(chocolate|strawberry|banana|vanilla|coffee|protein|shake|ice cream|cottage|sour cream)\b/i;
 
 function consensusItem(group, text) {
@@ -103,10 +105,13 @@ function consensusItem(group, text) {
   // (113 g)": the cup size from the products whose labels give one ("0.5 cup
   // (113 g)" makes a cup 226 g).
   const perUnit = !top.portion && group.unit ? like.filter((plan) => plan.sized).map((plan) => plan.portion.grams) : [];
-  const grams = top.portion ? top.portion.grams : perUnit.length ? median(perUnit) : servings.length ? servingFor(servings, group.size) : portionsFor(top.food)[0].grams;
+  const grams = top.portion ? top.portion.grams : perUnit.length ? median(perUnit) : plainMilk && !group.size ? CUP_OF_MILK : servings.length ? servingFor(servings, group.size) : portionsFor(top.food)[0].grams;
   const units = group.quantity * top.count;
-  const label = top.portion?.label ?? (perUnit.length ? `1 ${group.unit} (${Math.round(grams)} g)` : `1 serving (${Math.round(grams)} g)`);
-  const shown = like.includes(top) ? top : like[0]; // named after a product that was averaged
+  const label = top.portion?.label ?? (perUnit.length ? `1 ${group.unit} (${Math.round(grams)} g)` : grams === CUP_OF_MILK ? "1 cup" : `1 serving (${Math.round(grams)} g)`);
+  // Named after a product that was averaged; for plain milk, the one closest
+  // to the middle ("Lactaid 2%", not "Lactaid Fat Free").
+  const closest = [...like].sort((a, b) => Math.abs(a.food[1] - density) - Math.abs(b.food[1] - density))[0];
+  const shown = plainMilk ? closest : like.includes(top) ? top : like[0];
   const calories = Math.round((density * grams * units) / 100);
   return { name: `${shown.name} (typical of ${like.length} similar)`, portion: `${amount(units)} × ${label}`, calories, food: shown.source, macros: macrosFor(shown.food, calories) };
 }
