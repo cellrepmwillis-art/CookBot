@@ -8,7 +8,7 @@ import { resolve, planItem } from "./resolve.js";
 import { barcodeKeys, startScanner, decodePhoto, lookupOnline } from "./barcode.js";
 
 // Shown at the bottom of Settings, to check which version a phone is running.
-const VERSION = "2026-10-24 · 1:00 AM";
+const VERSION = "2026-10-24 · 1:30 AM";
 const STORAGE_KEY = "cookbot";
 const KEEP_DAYS = 30;
 const DEFAULT_GOAL = 2000;
@@ -653,5 +653,27 @@ if (isFirstRun) openSettings();
 
 if ("serviceWorker" in navigator) {
   // updateViaCache: check sw.js itself for changes on every open, too.
-  navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch(() => {});
+  const registration = navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch(() => null);
+  // A phone keeps the app open in the background for days, so check for a
+  // new version each time it's brought back, and switch to it once nothing
+  // is being typed or edited.
+  document.addEventListener("visibilitychange", async () => {
+    if (!document.hidden) (await registration)?.update().catch(() => {});
+  });
+  // The first install also takes control of the page; only a later one is an update.
+  let controller = navigator.serviceWorker.controller;
+  let reloading = false;
+  const reloadWhenIdle = () => {
+    if (reloading) return;
+    if ($("search").value || document.querySelector("dialog[open]")) {
+      setTimeout(reloadWhenIdle, 5000);
+      return;
+    }
+    reloading = true;
+    location.reload();
+  };
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (controller) reloadWhenIdle();
+    controller = navigator.serviceWorker.controller;
+  });
 }

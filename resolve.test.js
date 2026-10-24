@@ -261,3 +261,9 @@ test("nonfat, skim, fat free, 1%, 2 percent and whole milk", () => {
   assert.match(resolve("nonfat latte", []).items[0].name, /skim/);
   assert.match(resolve("2 percent latte", []).items[0].name, /2%/);
 });
+
+test("8 oz lactaid 2 percent milk is one cup of Lactaid 2%", () => {
+  const r = resolve("8 oz lactaid 2 percent milk", []);
+  assert.match(r.items[0].name, /Lactaid 2%/);
+  assert.ok(r.total > 115 && r.total < 140, String(r.total));
+});
