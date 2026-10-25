@@ -8,11 +8,10 @@ import { resolve, planItem } from "./resolve.js";
 import { barcodeKeys, startScanner, decodePhoto, lookupOnline } from "./barcode.js";
 
 // Shown at the bottom of Settings, to check which version a phone is running.
-const VERSION = "2026-10-26 · 12:00 AM";
+const VERSION = "2026-10-26 · 12:30 AM";
 const STORAGE_KEY = "cookbot";
 const KEEP_DAYS = 30;
 const DEFAULT_GOAL = 2000;
-const DEFAULT_LEEWAY = 10; // percent over the goal a day can be and still count for the streak
 
 const $ = (id) => document.getElementById(id);
 
@@ -26,8 +25,7 @@ function load() {
   // was last open, for the morning recap.
   // profile: { sex, age, heightIn, weightLb, aim, diet } for the protein and
   // calorie goals and the Recommend line.
-  // leeway: how far over the goal (percent) a day can go and still count.
-  const defaults = { goal: DEFAULT_GOAL, leeway: DEFAULT_LEEWAY, apiKey: "", entries: [], myFoods: [], days: {}, lastDay: null, profile: {} };
+  const defaults = { goal: DEFAULT_GOAL, apiKey: "", entries: [], myFoods: [], days: {}, lastDay: null, profile: {} };
   try {
     const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (data) return { ...defaults, ...data };
@@ -163,7 +161,7 @@ function renderStreak(eaten) {
   showRecap(today);
   if (JSON.stringify(state.days[today] ?? null) !== before) save();
 
-  const { current } = streak(state.days, today, state.leeway);
+  const { current } = streak(state.days, today);
   $("streak").textContent = `🔥 ${current} ${current === 1 ? "day" : "days"} on track`;
 }
 
@@ -174,9 +172,9 @@ function showRecap(today) {
   state.lastDay = today;
   save();
   if (!last) return;
-  const r = recap(state.days, last, state.leeway);
+  const r = recap(state.days, last);
   const when = last === previousDay(today) ? "Yesterday" : new Date(`${last}T12:00`).toLocaleDateString([], { weekday: "long" });
-  const { current } = streak(state.days, today, state.leeway);
+  const { current } = streak(state.days, today);
   let text;
   const onTrack = r.result === "under" || r.result === "close";
   if (onTrack && last !== previousDay(today)) text = "Welcome back! A day with nothing logged starts the count over today.";
@@ -558,7 +556,6 @@ $("use-calories").addEventListener("click", () => {
 function openSettings() {
   const p = state.profile;
   $("goal-input").value = state.goal;
-  $("leeway-input").value = String(state.leeway);
   $("key-input").value = state.apiKey;
   $("sex-input").value = p.sex ?? "";
   $("age-input").value = p.age ?? "";
@@ -578,7 +575,6 @@ $("settings").addEventListener("close", () => {
   if ($("settings").returnValue !== "save") return;
   const goal = Math.round(Number($("goal-input").value));
   if (goal > 0) state.goal = goal;
-  state.leeway = Number($("leeway-input").value);
   state.apiKey = $("key-input").value.trim();
   state.profile = profileFromForm();
   save();
