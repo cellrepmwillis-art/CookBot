@@ -8,7 +8,7 @@ import { resolve, planItem } from "./resolve.js";
 import { barcodeKeys, startScanner, decodePhoto, lookupOnline } from "./barcode.js";
 
 // Shown at the bottom of Settings, to check which version a phone is running.
-const VERSION = "2026-10-26 · 2:30 AM";
+const VERSION = "2026-10-26 · 3:00 PM";
 const STORAGE_KEY = "cookbot";
 const KEEP_DAYS = 30;
 const DEFAULT_GOAL = 2000;
@@ -64,6 +64,22 @@ function todaysEntries() {
   return state.entries.filter((e) => e.day === today);
 }
 
+// ---- Yesterday: the only past day that can still be changed ----
+
+function renderYesterday() {
+  const day = previousDay(dayKey());
+  const entries = state.entries.filter((e) => e.day === day);
+  const eaten = entries.reduce((sum, e) => sum + e.total, 0);
+  $("yesterday-log").replaceChildren(...entries.slice().reverse().map((e) => renderEntry(e, "yesterday")));
+  $("yesterday-empty").hidden = entries.length > 0;
+  $("yesterday-total").textContent = eaten ? `· ${eaten.toLocaleString()} cal` : "";
+  // Its streak summary follows the changes, judged against that day's goal.
+  const before = JSON.stringify(state.days[day] ?? null);
+  if (eaten > 0) state.days[day] = { eaten, goal: state.days[day]?.goal ?? state.goal };
+  else if (state.days[day]) delete state.days[day];
+  if (JSON.stringify(state.days[day] ?? null) !== before) save();
+}
+
 function render() {
   const entries = todaysEntries();
   const eaten = entries.reduce((sum, e) => sum + e.total, 0);
@@ -87,7 +103,8 @@ function render() {
   const reset = nextReset();
   $("reset-info").textContent = `Resets ${reset.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} ${reset.toDateString() === new Date().toDateString() ? "today" : "tomorrow"}`;
 
-  $("log").replaceChildren(...entries.slice().reverse().map(renderEntry));
+  $("log").replaceChildren(...entries.slice().reverse().map((e) => renderEntry(e)));
+  renderYesterday();
   $("log-empty").hidden = entries.length > 0;
   $("log-tip").hidden = entries.length === 0;
 
@@ -199,7 +216,7 @@ function showRecap(today) {
 
 $("recap-close").addEventListener("click", () => { $("recap").hidden = true; });
 
-function renderEntry(entry) {
+function renderEntry(entry, when = "today") {
   const li = document.createElement("li");
 
   let thumb;
@@ -232,7 +249,7 @@ function renderEntry(entry) {
   remove.textContent = "✕";
   remove.addEventListener("click", (event) => {
     event.stopPropagation();
-    if (!confirm(`Remove ${entry.total} calories from today?`)) return;
+    if (!confirm(`Remove ${entry.total} calories from ${when}?`)) return;
     state.entries = state.entries.filter((e) => e.id !== entry.id);
     save();
     render();
@@ -270,8 +287,15 @@ function scaleMacros(macros, factor) {
   return macros && { protein: macros.protein * factor, carbs: macros.carbs * factor, fat: macros.fat * factor };
 }
 
-function logEntry({ label, items, total, thumb, typed = false }) {
-  const now = Date.now();
+// yesterday: add it to yesterday instead (something forgotten).
+function logEntry({ label, items, total, thumb, typed = false, yesterday = false }) {
+  let now = Date.now();
+  if (yesterday) {
+    // The same time yesterday (or just before today began, around a clock change).
+    const day = previousDay(dayKey());
+    now -= 24 * 60 * 60 * 1000;
+    if (dayKey(new Date(now)) !== day) now = nextReset(new Date(Date.now() - 24 * 60 * 60 * 1000)) - 60 * 1000;
+  }
   state.entries.push({
     id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
     ts: now,
@@ -318,9 +342,19 @@ async function showEstimate() {
 
 $("search").addEventListener("input", showEstimate);
 
-$("add-form").addEventListener("submit", async (event) => {
+$("add-form").addEventListener("submit", (event) => {
   event.preventDefault();
-  const query = $("search").value.trim();
+  logTyped($("search"));
+});
+
+$("yesterday-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  logTyped($("yesterday-search"), true);
+});
+
+// Logs what's typed in a box, to today or to yesterday.
+async function logTyped(input, yesterday = false) {
+  const query = input.value.trim();
   if (!query) return;
   await foodsReady;
   let result = resolve(query, state.myFoods);
@@ -333,11 +367,11 @@ $("add-form").addEventListener("submit", async (event) => {
   }
   const named = result.label !== "Calories"; // a bare "300" has no words to remember
   if (result.exact && named) rememberCalories(result.label, result.total);
-  logEntry({ ...result, typed: named });
-  $("search").value = "";
-  $("estimate").textContent = "";
-  $("search").blur();
-});
+  logEntry({ ...result, typed: named, yesterday });
+  input.value = "";
+  if (!yesterday) $("estimate").textContent = "";
+  input.blur();
+}
 
 // ---- Barcode scanning ----
 

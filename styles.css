@@ -210,3 +210,8 @@ dialog::backdrop { background: rgb(0 0 0 / 0.5); }
 .suggest { flex-basis: 100%; border: none; background: none; color: var(--muted); font: inherit; font-size: 0.9rem; text-align: center; padding: 6px 0 0; cursor: pointer; }
 .suggest b { color: var(--text); }
 .suggest[hidden] { display: none; }
+
+.yesterday summary { font-weight: 600; cursor: pointer; padding: 2px 0; }
+.yesterday[open] summary { margin-bottom: 12px; }
+.yesterday .add { margin-top: 12px; }
+.yesterday .add input { width: 100%; }

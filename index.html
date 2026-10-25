@@ -74,6 +74,19 @@
       <p id="log-empty" class="muted">Nothing logged yet today.</p>
       <p id="log-tip" class="muted small" hidden>Tap an entry to change its calories. The app remembers the change for next time.</p>
     </section>
+
+    <details class="card yesterday" id="yesterday">
+      <summary>Yesterday <span class="muted" id="yesterday-total"></span></summary>
+      <ul id="yesterday-log" class="log"></ul>
+      <p id="yesterday-empty" class="muted">Nothing was logged yesterday.</p>
+      <form id="yesterday-form" class="add">
+        <label class="search">
+          <span class="visually-hidden">Add something you forgot to yesterday</span>
+          <input id="yesterday-search" type="text" placeholder="Forgot something?" autocomplete="off" autocapitalize="off" enterkeyhint="done">
+        </label>
+        <button class="primary" type="submit">Add</button>
+      </form>
+    </details>
   </main>
 
   <dialog id="scanner" aria-labelledby="scanner-title">
