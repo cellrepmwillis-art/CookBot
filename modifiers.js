@@ -90,10 +90,12 @@ export function parseQuery(query) {
   // the quantity is a count of pieces ("4-piece", "4 tenders") or of a measure
   // ("1/2 cup"); "2/3 of a red bull" is just part of one.
   let counted = fraction !== 1 && new RegExp(`^\\s*(?:${HOUSEHOLD})\\b`).test(q);
-  // "single espresso shot", "double shot of espresso": a number of shots.
-  const shots = q.match(/\b(single|double|triple|quad)\s+(?:shots?\s+(?:of\s+)?)?espresso(?:\s+shots?)?\b/);
+  // "single espresso shot", "double shot of espresso", "1 shot espresso",
+  // "espresso 2 shots": a number of shots.
+  const shots = q.match(/\b(single|double|triple|quad|one|two|three|four|\d{1,2})\s+(?:shots?\s+(?:of\s+)?)?espresso(?:\s+shots?)?\b/) ||
+    q.match(/\bespresso\s+(\d{1,2})\s+shots?\b/);
   if (shots) {
-    quantity = { single: 1, double: 2, triple: 3, quad: 4 }[shots[1]];
+    quantity = { single: 1, one: 1, double: 2, two: 2, triple: 3, three: 3, quad: 4, four: 4 }[shots[1]] ?? Number(shots[1]);
     counted = true;
     q = q.slice(0, shots.index) + " espresso " + q.slice(shots.index + shots[0].length);
   }

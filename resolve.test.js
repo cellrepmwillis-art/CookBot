@@ -267,3 +267,21 @@ test("8 oz lactaid 2 percent milk is one cup of Lactaid 2%", () => {
   assert.match(r.items[0].name, /Lactaid 2%/);
   assert.ok(r.total > 115 && r.total < 140, String(r.total));
 });
+
+test("one shot espresso is a shot; fried flounder is breaded and fried", () => {
+  assert.ok(resolve("one shot espresso", []).total < 10);
+  assert.ok(resolve("2 shots espresso", []).total < 10);
+  const fried = resolve("8oz fried flounder", []);
+  assert.match(fried.items[0].name, /breaded and fried/);
+  assert.ok(fried.total > 450 && fried.total < 560, String(fried.total));
+  assert.ok(resolve("8 oz flounder", []).total < 250);
+});
+
+test("fish and shrimp: cod is cod, fried shrimp counts shrimp", () => {
+  assert.match(resolve("cod", []).items[0].name, /^Fish, cod/);
+  assert.match(resolve("fried fish", []).items[0].name, /breaded and fried/);
+  assert.match(resolve("fried shrimp", []).items[0].name, /^Fried shrimp/);
+  assert.match(resolve("shrimp", []).items[0].name, /moist heat/);
+  const ten = resolve("10 fried shrimp", []).total;
+  assert.ok(ten > 250 && ten < 450, String(ten));
+});

@@ -27,6 +27,11 @@ SKIP_GROUPS = {
 
 # Everyday foods, ranked first in search.
 COMMON = {
+    "Fish, cod, Atlantic, cooked, dry heat",
+    "Fish, flatfish (flounder and sole species), cooked, dry heat",
+    "Fish, haddock, cooked, dry heat",
+    "Fish, tilapia, cooked, dry heat",
+    "Crustaceans, shrimp, mixed species, cooked, moist heat (may have been previously frozen)",
     "Alcoholic beverage, beer, light",
     "Alcoholic beverage, beer, regular, all",
     "Alcoholic beverage, wine, table, red",
@@ -200,6 +205,16 @@ def lattes(kcal_of):
     chocolate = "Milk, chocolate, fluid, commercial, reduced fat, with added vitamin A and vitamin D"
     foods.append(["Chocolate milk, reduced fat", kcal_of[chocolate], [["1 cup (8 fl oz)", 250]], 3])
     macros_of["Chocolate milk, reduced fat"] = macros_of[chocolate]
+    # "Fried flounder", "fried cod": USDA has breaded and fried catfish and
+    # croaker only, so other white fish use their average.
+    fried = [("Fish, catfish, channel, cooked, breaded and fried", 50), ("Fish, croaker, Atlantic, cooked, breaded and fried", 50)]
+    fried_name = "Fish, white fish, breaded and fried (flounder, cod, haddock, tilapia, whiting, pollock, perch)"
+    foods.append([fried_name, round(sum(kcal_of[n] * g for n, g in fried) / 100), [["1 fillet (5 oz)", 140], ["3 oz", 85]], 1])
+    macros_of[fried_name] = mix(fried)
+    # Ranked first only when both "fried" and "shrimp" are typed (not shrimp fried rice).
+    shrimp = "Crustaceans, shrimp, mixed species, cooked, breaded and fried"
+    foods.append(["Fried shrimp, breaded", kcal_of[shrimp], [["1 serving (4 oz, about 8 large)", 113], ["1 large shrimp", 14]], 3])
+    macros_of["Fried shrimp, breaded"] = macros_of[shrimp]
     almond = "Beverages, almond milk, unsweetened, shelf stable"
     foods.append(["Almond milk, unsweetened", kcal_of[almond], [["1 cup (8 fl oz)", 240]], 3])
     macros_of["Almond milk, unsweetened"] = macros_of[almond]
