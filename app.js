@@ -8,10 +8,11 @@ import { resolve, planItem } from "./resolve.js";
 import { barcodeKeys, startScanner, decodePhoto, lookupOnline } from "./barcode.js";
 
 // Shown at the bottom of Settings, to check which version a phone is running.
-const VERSION = "2026-10-26 · 1:00 AM";
+const VERSION = "2026-10-26 · 1:30 AM";
 const STORAGE_KEY = "cookbot";
 const KEEP_DAYS = 30;
 const DEFAULT_GOAL = 2000;
+const HIT_RANGE = 25; // within this many calories of the goal, either way, is hitting it
 
 const $ = (id) => document.getElementById(id);
 
@@ -71,13 +72,16 @@ function render() {
   $("goal").textContent = state.goal.toLocaleString();
   $("eaten").textContent = eaten.toLocaleString();
   $("remaining").textContent = Math.abs(remaining).toLocaleString();
-  // Green at or under the goal, yellow when over but close enough to still
-  // count for the streak, red past that.
-  const close = remaining < 0 && -remaining <= allowance(state.goal);
-  $("remaining-label").textContent = remaining >= 0 ? "calories left" : close ? "over, still on track" : "calories over";
+  // Teal on the way to the goal, green within 25 cal of it either way,
+  // yellow when further over but close enough to still count for the
+  // streak, red past that.
+  const hit = Math.abs(remaining) <= HIT_RANGE;
+  const close = !hit && remaining < 0 && -remaining <= allowance(state.goal);
+  $("remaining-label").textContent = hit ? (remaining >= 0 ? "left · goal hit" : "over · goal hit") : remaining >= 0 ? "calories left" : close ? "over, still on track" : "calories over";
   const ring = $("ring");
+  ring.classList.toggle("hit", hit);
   ring.classList.toggle("close", close);
-  ring.classList.toggle("over", remaining < 0 && !close);
+  ring.classList.toggle("over", remaining < 0 && !hit && !close);
   ring.style.setProperty("--pct", Math.min(100, (eaten / state.goal) * 100));
 
   const reset = nextReset();

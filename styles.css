@@ -86,7 +86,7 @@ button.primary { background: var(--accent); color: var(--accent-text); border-co
 .summary { display: flex; align-items: center; gap: 20px; }
 .ring {
   --pct: 0;
-  --ring-color: var(--good);
+  --ring-color: var(--accent);
   width: 140px;
   height: 140px;
   flex: none;
@@ -96,6 +96,8 @@ button.primary { background: var(--accent); color: var(--accent-text); border-co
   place-items: center;
 }
 .ring.over { --ring-color: var(--over); }
+.ring.hit { --ring-color: var(--good); }
+.ring.hit .big { color: var(--good); }
 .ring.close { --ring-color: var(--close); }
 .ring.close .big { color: var(--close); }
 .ring-inner {
