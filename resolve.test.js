@@ -294,3 +294,25 @@ test("lunchables, however it's typed, and store-brand copies", () => {
   assert.match(resolve("ham lunchable", []).items[0].name, /^Lunchables, ham/);
   assert.match(resolve("pizza lunchable", []).items[0].name, /Pizza/);
 });
+
+test("a handful: about an ounce of nuts or chips, more grapes, less popcorn", () => {
+  const almonds = resolve("handful of almonds", []);
+  assert.match(almonds.items[0].name, /^Nuts, almonds/);
+  assert.ok(almonds.total > 140 && almonds.total < 180, String(almonds.total));
+  near(resolve("2 handfuls of almonds", []).total, almonds.total * 2);
+  assert.ok(resolve("handful of grapes", []).total < 70);
+  assert.ok(resolve("handful of popcorn", []).total < 80);
+  assert.match(resolve("handful of m&ms", []).items[0].name, /M&M/);
+  assert.equal(resolve("handful of m&ms", []).items.length, 1);
+});
+
+test("fun size, small and king size candy bars", () => {
+  const fun = resolve("fun size snickers", []).total;
+  assert.ok(fun > 70 && fun < 100, String(fun));
+  const two = resolve("2 small butterfingers", []);
+  assert.match(two.items[0].name, /^Butterfinger/);
+  assert.ok(two.total > 140 && two.total < 210, String(two.total));
+  assert.match(resolve("2 fun size snickers", []).items[0].name, /^Snickers/);
+  const king = resolve("king size snickers", []).total;
+  assert.ok(king > 380 && king < 480, String(king));
+});

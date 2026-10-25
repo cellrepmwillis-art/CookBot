@@ -63,7 +63,7 @@ const NUMBER_WORDS = { two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eig
 // Words after a number that make it a measurement, not a count ("16 oz").
 const UNITS = String.raw`(?:inch|inches|in|oz|ounce|ounces|g|grams?|lbs?|pounds?|ml|fl|percent|calories?|cals?|kcal)\b`;
 
-const HOUSEHOLD = "cups?|tbsps?|tablespoons?|tsps?|teaspoons?|bowls?|slices?|pieces?|glass(?:es)?|cans?|bottles?|scoops?|servings?|strips?|links?|patties|patty";
+const HOUSEHOLD = "handfuls?|cups?|tbsps?|tablespoons?|tsps?|teaspoons?|bowls?|slices?|pieces?|glass(?:es)?|cans?|bottles?|scoops?|servings?|strips?|links?|patties|patty";
 
 // About how much a casual amount is.
 const CASUAL_AMOUNTS = { drizzle: [2, "tsp"], splash: [2, "tbsp"], dollop: [2, "tbsp"], sprinkle: [1, "tsp"], spoonful: [1, "tbsp"], squirt: [1, "tbsp"], pat: [1, "pat"] };

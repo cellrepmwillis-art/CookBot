@@ -11,15 +11,40 @@ const SIZE_LABELS = { small: ["small"], medium: ["medium", "regular"], regular: 
 // "16 oz latte", "6 inch sub": the portion with that measure in its label.
 const MEASURE = /(?<![\d.])(\d{1,2}(?:\.\d+)?)\s*-?\s*(oz|ounces?|inch(?:es)?|in)\b/i;
 
+// Candy bars: "fun size" (and a "small" one) is about 18 g; "king size" is
+// about 1.75 times the regular bar.
+const CANDY = /\b(candy|chocolate bar|snickers|butterfinger|twix|reese'?s|kit ?kat|milky way|3 musketeers|baby ruth|payday|hershey'?s|almond joy|mounds|crunch|whatchamacallit|heath|100 grand|skor|zero bar|m&m'?s?)\b/i;
+const FUN_SIZE_GRAMS = 18;
+
+function candySize(food, size, labels) {
+  if (!CANDY.test(food[0]) || food[1] < 350 || !labels.length) return null;
+  if (size === "small") return { label: `1 fun size (about ${FUN_SIZE_GRAMS} g)`, grams: FUN_SIZE_GRAMS };
+  if (size === "large") return { label: "1 king size", grams: labels[0].grams * 1.75 };
+  return null;
+}
+
 function withSize(plan, size, measure, unit) {
   if (plan.portion) return plan;
   const labels = portionsFor(plan.food);
+  const candy = !unit && !measure && size && candySize(plan.food, size, labels);
+  if (candy) return { ...plan, portion: candy, sized: true, countable: true }; // one bar is a piece
   const portion =
     (unit && perUnit(labels, unit)) ||
+    (unit === "handful" && handful(plan.food)) ||
     (measure && labels.find((p) => new RegExp(`(?<![\\d.])${measure[1].replace(".", "\\.")}\\s*-?\\s*(?:fl\\.?\\s*)?${measure[2].slice(0, 2)}`, "i").test(p.label))) ||
     (measure && /^o/i.test(measure[2]) && ounces(labels, Number(measure[1]))) ||
     (size && labels.find((p) => SIZE_LABELS[size].some((w) => new RegExp(`\\b${w}\\b`, "i").test(p.label))));
   return portion ? { ...plan, portion, sized: true } : plan;
+}
+
+// "A handful of almonds": about an ounce of nuts, chips, pretzels or candy;
+// more by weight of something watery like grapes (fewer calories), and far
+// less of something airy like popcorn.
+function handful(food) {
+  // Popcorn and puffs are mostly air: a handful is about a cup.
+  const airy = /popcorn|puffs?\b|cheetos|rice cakes?/i.test(food[0]);
+  const grams = airy ? 10 : food[1] >= 300 ? 28 : food[1] >= 150 ? 40 : 75;
+  return { label: `1 handful (about ${grams} g)`, grams };
 }
 
 // "8 oz" when no label says so: fluid ounces for drinks, weight otherwise.
@@ -133,7 +158,8 @@ function lookupSized(query, limit) {
   return { results, quantity, counted, countNoun, unit, unmatched: [...new Set(unmatched)], how };
 }
 
-const SEPARATOR = /\s*(?:,|\+|&|\band\b|\bplus\b)\s*/i;
+// "&" only with spaces around it: "m&ms" and "a&w" are one word.
+const SEPARATOR = /\s*(?:,|\+|\s&\s|\band\b|\bplus\b)\s*/i;
 
 // "X with Y": one food when that's what it is ("whopper with cheese", "bagel
 // with cream cheese", "latte with oat milk"), else X and Y ("salad with olive

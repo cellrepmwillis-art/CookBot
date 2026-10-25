@@ -181,7 +181,7 @@ const KNOWN_WORDS = [
   "piece", "pieces", "pc", "pcs", "count", "kids", "kid", "iced", "hot", "cal", "cals", "calories", "kcal",
   // Measures and amounts ("tablespoon" isn't "table spoon").
   "tablespoon", "tablespoons", "teaspoon", "teaspoons", "tbsp", "tsp", "cups", "bowls", "glasses", "scoop", "scoops",
-  "serving", "servings", "drizzle", "splash", "dollop", "sprinkle", "spoonful", "squirt", "pat", "handful",
+  "serving", "servings", "drizzle", "splash", "dollop", "sprinkle", "spoonful", "squirt", "pat", "handful", "handfuls", "fun", "mini", "minis", "king",
   "third", "thirds", "quarter", "quarters", "skinless",
 ].filter((w) => w.length >= 2);
 
@@ -265,6 +265,8 @@ export function correctTypos(query) {
       .replace(/^(\W*(?:\d+|an?|one|two)?\s*)lunchables\W*$/i, "$1turkey lunchables")
       .replace(/\b(?:oscar mayer|great value|kroger|food lion|member'?s mark|kirkland|aldi|lunchmate|good (?:&|and) gather|market pantry|equate|hy-?vee|publix|h-?e-?b)\b/gi, " ");
   }
+  // Candy sizes: "fun size" and "snack size" are the small ones, "king size" the large.
+  query = query.replace(/\b(?:fun|snack)[\s-]?size[ds]?\b/gi, "small").replace(/\bking[\s-]?size[ds]?\b/gi, "large");
   // "2 percent milk", "two percent", "1 %": the milkfat, not a count.
   query = query.replace(/\b(1|2|one|two)\s*(?:%|percent|per cent|pct)(?![a-z])/gi, (_, n) => `${{ one: 1, two: 2 }[n.toLowerCase()] ?? n}%`);
   // "milk with calcium", "OJ with added vitamin D": what's added to it, not a
@@ -272,7 +274,9 @@ export function correctTypos(query) {
   query = query.replace(/\b(?:with|w\/|plus|and)\s+(?:added\s+|extra\s+)?(?:calcium|vitamins?(?:\s+[a-e]\d?)?(?:\s*(?:&|and)\s*[a-e]\d?)?|d3|iron|fiber|fibre|omega[- ]?3s?|probiotics?|dha|electrolytes|lactase)\b/gi, " ");
   return query.replace(/[a-z]+/gi, (w) => {
     const word = w.toLowerCase();
-    if (word.length >= 6 && (vocabulary.get(word) ?? 0) < TRUSTED_COUNT) {
+    // Not a plural of a known word: "butterfingers" isn't "butter fingers".
+    const singular = word.replace(/e?s$/, "");
+    if (word.length >= 6 && (vocabulary.get(word) ?? 0) < TRUSTED_COUNT && (vocabulary.get(singular) ?? 0) < TRUSTED_COUNT) {
       const split = splitWord(word);
       if (split) return split;
     }

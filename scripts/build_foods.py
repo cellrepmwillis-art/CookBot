@@ -97,6 +97,10 @@ COMMON = {
 # Everyday portions missing from ABBREV.txt, which lists at most two per food.
 # These are offered first; LATER_PORTIONS are offered after USDA's own.
 EXTRA_PORTIONS = {
+    "Peanuts, all types, dry-roasted, with salt": [["1 oz (about 28 peanuts)", 28.4]],
+    "Snacks, pretzels, hard, plain, salted": [["1 oz (about 5 twists)", 28.4]],
+    "Snacks, popcorn, microwave, regular (butter) flavor, made with partially hydrogenated oil": [["1 serving (3 cups popped)", 24]],
+    "Snacks, potato chips, plain, salted": [["1 oz (about 15 chips)", 28]],
     "Sweet potato, cooked, baked in skin, flesh, without salt (Sweetpotato)": [["1 medium", 150]],
     "Beef, top sirloin, steak, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, broiled (URMIS #2237, Sirloin steak, Sirloin strip)": [["1 steak (6 oz cooked)", 170]],
     "Vegetables, mixed, frozen, cooked, boiled, drained, without salt": [["1 cup", 182]],
@@ -117,7 +121,7 @@ EXTRA_PORTIONS = {
     "Water, bottled, generic": [["1 bottle (16.9 fl oz)", 500]],
 }
 # A plain "steak", "vegetables" or "salmon" means these.
-FIRST_CHOICE = {"Nuts, almonds", "Sweet potato, cooked, baked in skin, flesh, without salt (Sweetpotato)", "Beef, top sirloin, steak, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, broiled (URMIS #2237, Sirloin steak, Sirloin strip)", "Vegetables, mixed, frozen, cooked, boiled, drained, without salt", "Fish, salmon, Atlantic, farmed, cooked, dry heat", "Beverages, coffee, brewed, prepared with tap water", "Rice, white, long-grain, regular, enriched, cooked", "Chicken, broilers or fryers, breast, meat only, cooked, roasted"}
+FIRST_CHOICE = {"Grapes, red or green (European type, such as Thompson seedless), raw", "Peanuts, all types, dry-roasted, with salt", "Snacks, pretzels, hard, plain, salted", "Snacks, popcorn, microwave, regular (butter) flavor, made with partially hydrogenated oil", "Snacks, potato chips, plain, salted", "Nuts, almonds", "Sweet potato, cooked, baked in skin, flesh, without salt (Sweetpotato)", "Beef, top sirloin, steak, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, broiled (URMIS #2237, Sirloin steak, Sirloin strip)", "Vegetables, mixed, frozen, cooked, boiled, drained, without salt", "Fish, salmon, Atlantic, farmed, cooked, dry heat", "Beverages, coffee, brewed, prepared with tap water", "Rice, white, long-grain, regular, enriched, cooked", "Chicken, broilers or fryers, breast, meat only, cooked, roasted"}
 
 # Clearer names where USDA's are hard to tell apart.
 RENAME = {
