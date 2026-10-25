@@ -36,3 +36,13 @@ test("the morning recap says how yesterday went", () => {
   assert.equal(recap({ "2026-10-22": day(2100) }, "2026-10-22").result, "over");
   assert.equal(recap({}, "2026-10-22").result, "empty");
 });
+
+test("a day a little over still counts within the leeway", () => {
+  const days = { "2026-10-21": day(1900, 1800), "2026-10-22": day(1700, 1800) }; // 5.6% over, then under
+  assert.equal(streak(days, "2026-10-23").current, 1);
+  assert.equal(streak(days, "2026-10-23", 10).current, 2);
+  assert.equal(streak(days, "2026-10-23", 5).current, 1);
+  assert.equal(recap(days, "2026-10-21", 10).result, "close");
+  assert.equal(recap(days, "2026-10-21", 5).result, "over");
+  assert.equal(recap(days, "2026-10-22", 10).result, "under");
+});
