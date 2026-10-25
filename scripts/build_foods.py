@@ -262,6 +262,9 @@ MEALS = [
     ("Salmon with rice and broccoli", "1 plate (5 oz salmon, 1 cup rice, 1/2 cup broccoli)", [("Fish, salmon, Atlantic, farmed, cooked, dry heat", 140), (WHITE_RICE, 158), ("Broccoli, cooked, boiled, drained, without salt", 78)]),
     ("Steak and potato", "1 plate (6 oz sirloin, baked potato, 1 tbsp butter)", [("Beef, top sirloin, steak, separable lean and fat, trimmed to 0\" fat, all grades, cooked, broiled (Sirloin strip, Sirloin steak)", 170), ("Potatoes, baked, flesh and skin, without salt", 173), ("Butter, salted", 14)]),
     ("Berries, mixed", "1 cup (blueberries, strawberries, raspberries)", [("Blueberries, raw", 49), ("Strawberries, raw", 51), ("Raspberries, raw", 41)]),
+    # The classic cracker stacker (and store-brand copies): about 3.1 oz.
+    ("Lunchables, turkey and cheddar (or American) with crackers", "1 package (3.1 oz)", [("Turkey breast, sliced, prepackaged", 34), (CHEDDAR, 28), ("Crackers, standard snack-type, regular", 25)]),
+    ("Lunchables, ham and cheddar (or American) with crackers", "1 package (3.1 oz)", [("Ham, sliced, regular (approximately 11% fat)", 34), (CHEDDAR, 28), ("Crackers, standard snack-type, regular", 25)]),
     ("Salad, garden", "1 bowl, no dressing", SALAD),
     ("Salad, garden, with ranch", "1 bowl, 2 tbsp ranch", SALAD + [(RANCH, 30)]),
     ("Salad, grilled chicken, with ranch", "1 bowl, 3 oz chicken, 2 tbsp ranch", SALAD + [(CHICKEN, 85), (RANCH, 30)]),

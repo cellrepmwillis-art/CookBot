@@ -285,3 +285,12 @@ test("fish and shrimp: cod is cod, fried shrimp counts shrimp", () => {
   const ten = resolve("10 fried shrimp", []).total;
   assert.ok(ten > 250 && ten < 450, String(ten));
 });
+
+test("lunchables, however it's typed, and store-brand copies", () => {
+  for (const q of ["great value turkey luncable", "turkey lunchable", "turkey lunch able", "turkey lunchables", "oscar mayer turkey lunchable", "lunchable"]) {
+    assert.match(resolve(q, []).items[0].name, /^Lunchables, turkey/, q);
+  }
+  near(resolve("2 turkey lunchables", []).total, 2 * resolve("turkey lunchable", []).total);
+  assert.match(resolve("ham lunchable", []).items[0].name, /^Lunchables, ham/);
+  assert.match(resolve("pizza lunchable", []).items[0].name, /Pizza/);
+});

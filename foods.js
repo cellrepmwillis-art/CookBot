@@ -257,6 +257,14 @@ export function correctTypos(query) {
   query = query.replace(/(\d)\s*0(z|unces?)\b/gi, "$1 o$2");
   // One word, so "and" doesn't split it and "half" doesn't halve something.
   query = query.replace(/\bhalf\s*(?:and|&|n|'n'?)\s*half\b/gi, "halfnhalf");
+  // "lunchable", "luncable", "lunch able": Lunchables, and a store brand's
+  // copy ("great value turkey lunchable") is the same thing.
+  if (/\blunc?h?[\s-]?abl[es]*\b/i.test(query)) {
+    query = query.replace(/\blunc?h?[\s-]?abl[es]*\b/gi, "lunchables")
+      // Just "lunchable": the classic turkey one.
+      .replace(/^(\W*(?:\d+|an?|one|two)?\s*)lunchables\W*$/i, "$1turkey lunchables")
+      .replace(/\b(?:oscar mayer|great value|kroger|food lion|member'?s mark|kirkland|aldi|lunchmate|good (?:&|and) gather|market pantry|equate|hy-?vee|publix|h-?e-?b)\b/gi, " ");
+  }
   // "2 percent milk", "two percent", "1 %": the milkfat, not a count.
   query = query.replace(/\b(1|2|one|two)\s*(?:%|percent|per cent|pct)(?![a-z])/gi, (_, n) => `${{ one: 1, two: 2 }[n.toLowerCase()] ?? n}%`);
   // "milk with calcium", "OJ with added vitamin D": what's added to it, not a
