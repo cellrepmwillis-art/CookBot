@@ -9,6 +9,7 @@
   --accent-text: #ffffff;
   --track: #e7e5e4;
   --over: #dc2626;
+  --close: #ca8a04;
   color-scheme: light dark;
 }
 
@@ -24,6 +25,7 @@
     --accent-text: #042f2e;
     --track: #292524;
     --over: #f87171;
+    --close: #facc15;
   }
 }
 
@@ -84,7 +86,7 @@ button.primary { background: var(--accent); color: var(--accent-text); border-co
 .summary { display: flex; align-items: center; gap: 20px; }
 .ring {
   --pct: 0;
-  --ring-color: var(--accent);
+  --ring-color: var(--good);
   width: 140px;
   height: 140px;
   flex: none;
@@ -94,6 +96,8 @@ button.primary { background: var(--accent); color: var(--accent-text); border-co
   place-items: center;
 }
 .ring.over { --ring-color: var(--over); }
+.ring.close { --ring-color: var(--close); }
+.ring.close .big { color: var(--close); }
 .ring-inner {
   width: 112px;
   height: 112px;

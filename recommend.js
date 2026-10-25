@@ -75,16 +75,18 @@ const AIM_STYLE = {
 
 // remaining: calories left. eaten: { protein, carbs, fat } so far (grams).
 // proteinGoal: grams or null. labels: what's been logged today.
-// aim: "gain" | "maintain" | "cut". diet: a key of DIETS.
+// aim: "gain" | "maintain" | "cut". diet: a key of DIETS. close: over the goal
+// but still within the streak's allowance.
 // Returns { text, query } where query is what to type to log it (or null).
-export function recommend({ remaining, hour, eaten = { protein: 0, carbs: 0, fat: 0 }, proteinGoal = null, labels = [], aim, diet }) {
+export function recommend({ remaining, hour, eaten = { protein: 0, carbs: 0, fat: 0 }, proteinGoal = null, labels = [], aim, diet, close = false }) {
   const slot = mealSlot(hour);
   const late = slot === "n";
   const style = AIM_STYLE[aim] ?? (aim === "muscle" ? AIM_STYLE.gain : AIM_STYLE.maintain);
   const rules = DIETS[diet] ?? DIETS.standard;
   if (remaining < 80) {
     const drink = late || hour >= 14 ? "water or herbal tea" : "water, black coffee or tea";
-    return { text: remaining < 0 ? `Over for today. If you're hungry, ${drink}.` : `About at your goal. If you're hungry, ${drink}.`, query: null };
+    const where = remaining >= 0 ? "About at your goal" : close ? "A little over, still on track" : "Over for today";
+    return { text: `${where}. If you're hungry, ${drink}.`, query: null };
   }
 
   const proteinLeft = proteinGoal ? proteinGoal - eaten.protein : 0;

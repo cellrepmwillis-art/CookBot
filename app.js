@@ -1,5 +1,5 @@
 import { dayKey, nextReset, previousDay } from "./day.js";
-import { streak, recap } from "./streak.js";
+import { streak, recap, allowance } from "./streak.js";
 import { proteinTarget, calorieSuggestion, AIMS } from "./profile.js";
 import { recommend, DIETS } from "./recommend.js";
 import { loadFoods, addFoods, findFood, findByBarcode } from "./foods.js";
@@ -8,7 +8,7 @@ import { resolve, planItem } from "./resolve.js";
 import { barcodeKeys, startScanner, decodePhoto, lookupOnline } from "./barcode.js";
 
 // Shown at the bottom of Settings, to check which version a phone is running.
-const VERSION = "2026-10-26 · 12:30 AM";
+const VERSION = "2026-10-26 · 1:00 AM";
 const STORAGE_KEY = "cookbot";
 const KEEP_DAYS = 30;
 const DEFAULT_GOAL = 2000;
@@ -71,9 +71,13 @@ function render() {
   $("goal").textContent = state.goal.toLocaleString();
   $("eaten").textContent = eaten.toLocaleString();
   $("remaining").textContent = Math.abs(remaining).toLocaleString();
-  $("remaining-label").textContent = remaining >= 0 ? "calories left" : "calories over";
+  // Green at or under the goal, yellow when over but close enough to still
+  // count for the streak, red past that.
+  const close = remaining < 0 && -remaining <= allowance(state.goal);
+  $("remaining-label").textContent = remaining >= 0 ? "calories left" : close ? "over, still on track" : "calories over";
   const ring = $("ring");
-  ring.classList.toggle("over", remaining < 0);
+  ring.classList.toggle("close", close);
+  ring.classList.toggle("over", remaining < 0 && !close);
   ring.style.setProperty("--pct", Math.min(100, (eaten / state.goal) * 100));
 
   const reset = nextReset();
@@ -102,6 +106,7 @@ function renderSuggestion(entries, remaining) {
     labels: entries.map((e) => e.label),
     aim: state.profile.aim,
     diet: state.profile.diet,
+    close: remaining < 0 && -remaining <= allowance(state.goal),
   });
   const label = document.createElement("b");
   label.textContent = "Recommend: ";
