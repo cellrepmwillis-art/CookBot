@@ -219,6 +219,11 @@ def lattes(kcal_of):
     shrimp = "Crustaceans, shrimp, mixed species, cooked, breaded and fried"
     foods.append(["Fried shrimp, breaded", kcal_of[shrimp], [["1 serving (4 oz, about 8 large)", 113], ["1 large shrimp", 14]], 3])
     macros_of["Fried shrimp, breaded"] = macros_of[shrimp]
+    # The McRib (newer than SR28): about 500 cal, 23 g protein, 44 g carbs and
+    # 24 g fat in a ~208 g sandwich, the middle of McDonald's published
+    # figures over the years (480 to 520 cal).
+    foods.append(["McDONALD'S, McRIB", 240, [["1 sandwich", 208]], 0])
+    macros_of["McDONALD'S, McRIB"] = (11.1, 21.2, 11.5)
     almond = "Beverages, almond milk, unsweetened, shelf stable"
     foods.append(["Almond milk, unsweetened", kcal_of[almond], [["1 cup (8 fl oz)", 240]], 3])
     macros_of["Almond milk, unsweetened"] = macros_of[almond]
@@ -303,7 +308,8 @@ LATER_PORTIONS = {
     "Yogurt, Greek, plain, nonfat": [["1 cup", 227]],
     # USDA lists small and medium only; a large is about 154 g (McDonald's: ~150 g).
     "Fast foods, potato, french fried in vegetable oil": [["1 serving, large", 154]],
-    "Beverages, carbonated, cola, regular (soft drink, pop, soda)": [["1 bottle (20 fl oz)", 616]],
+    # Fountain cups with ice, like McDonald's: about 150, 200 and 290 cal.
+    "Beverages, carbonated, cola, regular (soft drink, pop, soda)": [["1 bottle (20 fl oz)", 616], ["Small fountain (16 oz cup, with ice)", 357], ["Medium fountain (21 oz cup, with ice)", 476], ["Large fountain (30 oz cup, with ice)", 690]],
     "Alcoholic beverage, beer, regular, all": [["1 pint (16 fl oz)", 474]],
     "Alcoholic beverage, beer, light": [["1 pint (16 fl oz)", 472]],
 }

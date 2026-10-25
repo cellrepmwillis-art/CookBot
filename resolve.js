@@ -64,7 +64,7 @@ function consensusItem(group, text) {
   const kids = /\bkids?'?\b/i.test(text);
   // Raw or meatless versions only when asked for: "chicken tenders" are cooked chicken.
   // Sugar-free, diet and light versions too: a "red bull" is the regular one.
-  const unusual = /\b(raw|uncooked|unprepared|dry mix|meatless|chicken-free|meat-free|plant-based|vegan|sugar[- ]?free|sugarfree|zero|diet|light|lite|sf|quorn|gardein|morningstar|beyond|impossible|tofurky)\b/i;
+  const unusual = /\b(double|triple|raw|uncooked|unprepared|dry mix|meatless|chicken-free|meat-free|plant-based|vegan|sugar[- ]?free|sugarfree|zero|diet|light|lite|sf|quorn|gardein|morningstar|beyond|impossible|tofurky)\b/i;
   const askedUnusual = unusual.test(text);
   // "lactaid milk" is plain milk, not its chocolate or protein milk.
   const plainMilk = /\bmilk\b/i.test(text) && !FLAVORED_MILK.test(text);
@@ -120,6 +120,19 @@ function consensusItem(group, text) {
 // the end ("pizza 3") is a count, not calories.
 const EXPLICIT = /^(.*?)\s*\b(\d{1,4})\s*(k?cals?|calories)?$/i;
 
+// "mcrib meal", "large big mac combo": the sandwich with fries and a soda,
+// medium unless another size is named.
+const COMBO = /\b(?:meal|combo)\b/i;
+
+function combo(text) {
+  if (!COMBO.test(text)) return text;
+  const main = text.replace(COMBO, " ").replace(/\b(small|medium|large)\b/i, " ").replace(/\s+/g, " ").trim();
+  const top = main && lookupMeal(main, 5).single?.results[0];
+  if (!top || !isRestaurantFood(top.food)) return text; // "cracker meal", "meal bar"
+  const size = text.match(/\b(small|medium|large)\b/i)?.[1].toLowerCase() ?? "medium";
+  return `${main}, ${size} fries, ${size} coke`;
+}
+
 const key = (text) => text.toLowerCase().replace(/\s+/g, " ").trim();
 
 // Returns { label, items: [{ name, portion, calories, food? }], total, exact }
@@ -140,7 +153,7 @@ export function resolve(query, myFoods = []) {
   if (mine) return { label, items: [{ name: mine[0], portion: "", calories: mine[1] }], total: mine[1], exact: true };
 
   // Typos are fixed behind the scenes; the entry keeps the words as typed.
-  const text = correctTypos(label);
+  const text = combo(correctTypos(label));
   const { single, parts } = lookupMeal(text, 25);
   const items = parts
     ? parts.map((part) => consensusItem(part, part.text))

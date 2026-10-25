@@ -10,6 +10,7 @@
 // Everyday words that USDA names differently.
 const SYNONYMS = {
   halfnhalf: "half and half",
+  "mc rib": "mcrib",
   coke: "cola",
   pepsi: "cola",
   soda: "carbonated",

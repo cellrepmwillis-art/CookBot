@@ -316,3 +316,24 @@ test("fun size, small and king size candy bars", () => {
   const king = resolve("king size snickers", []).total;
   assert.ok(king > 380 && king < 480, String(king));
 });
+
+test("the McRib, however it's typed", () => {
+  for (const q of ["mcrib", "mc rib", "mcdonalds mcrib", "a mcrib"]) {
+    const r = resolve(q, []);
+    assert.match(r.items[0].name, /McRIB/, q);
+    near(r.total, 499);
+  }
+  near(resolve("2 mcribs", []).total, 998);
+  const meal = resolve("mcrib meal", []);
+  assert.equal(meal.items.length, 3);
+  assert.match(meal.items[0].name, /McRIB/);
+  assert.ok(meal.total > 1000 && meal.total < 1150, String(meal.total));
+});
+
+test("combo meals: sandwich, fries and a soda; other meals stay food", () => {
+  assert.equal(resolve("big mac meal", []).items.length, 3);
+  assert.ok(resolve("large big mac meal", []).total > resolve("big mac meal", []).total);
+  near(resolve("medium coke", []).total, 200);
+  assert.equal(resolve("cracker meal", []).items.length, 1);
+  assert.equal(resolve("oatmeal", []).items.length, 1);
+});
