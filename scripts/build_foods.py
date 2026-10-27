@@ -229,6 +229,14 @@ def lattes(kcal_of):
     popcorn = "Snacks, popcorn, microwave, regular (butter) flavor, made with partially hydrogenated oil"
     foods.append(["Popcorn, microwave, butter flavor", kcal_of[popcorn], [["1 serving (3 cups popped)", 24], ["1 cup", 7.9], ["1 bag", 87]], 3])
     macros_of["Popcorn, microwave, butter flavor"] = macros_of[popcorn]
+    # Chick-fil-A's grilled nuggets (not in SR28): 8 count is 130 cal,
+    # 25 g protein, 1 g carbs and 3 g fat in about 113 g.
+    foods.append(["CHICK-FIL-A, grilled nuggets", 115, [["8 count (113 g)", 113], ["12 count (170 g)", 170], ["1 nugget", 14]], 0])
+    macros_of["CHICK-FIL-A, grilled nuggets"] = (22.1, 0.9, 2.7)
+    # And the regular (breaded) ones: 8 count is 250 cal, 27 g protein, 11 g
+    # carbs and 11 g fat in about 113 g.
+    foods.append(["CHICK-FIL-A, nuggets", 221, [["8 count (113 g)", 113], ["12 count (170 g)", 170], ["1 nugget", 14]], 0])
+    macros_of["CHICK-FIL-A, nuggets"] = (23.9, 9.7, 9.7)
     almond = "Beverages, almond milk, unsweetened, shelf stable"
     foods.append(["Almond milk, unsweetened", kcal_of[almond], [["1 cup (8 fl oz)", 240]], 3])
     macros_of["Almond milk, unsweetened"] = macros_of[almond]
@@ -310,6 +318,7 @@ def meals(kcal_of):
 
 
 LATER_PORTIONS = {
+    "Chicken pot pie, frozen entree, prepared": [["1 cup", 240]],
     "Yogurt, Greek, plain, nonfat": [["1 cup", 227]],
     # USDA lists small and medium only; a large is about 154 g (McDonald's: ~150 g).
     "Fast foods, potato, french fried in vegetable oil": [["1 serving, large", 154]],

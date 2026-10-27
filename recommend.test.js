@@ -71,3 +71,8 @@ test("the aim changes the size: gain eats more, cut eats leaner", () => {
   const lateCut = recommend({ remaining: 800, hour: 22, ...day, aim: "cut" });
   assert.ok(_CHOICES.find(([n]) => n === lateGain.query)[1] >= _CHOICES.find(([n]) => n === lateCut.query)[1]);
 });
+
+test("a little left in the evening: a high-protein snack", () => {
+  const r = recommend({ remaining: 198, hour: 19, eaten: { protein: 89, carbs: 160, fat: 72 }, proteinGoal: 180 });
+  assert.ok(r.query, r.text);
+});

@@ -363,3 +363,15 @@ test("health yogurts: brands, flavors with \"and\", accents and possessives", ()
   assert.equal(resolve("chicken and rice", []).items.length, 1);
   assert.equal(resolve("big mac and fries", []).items.length, 2);
 });
+
+test("chick-fil-a nuggets, grilled or not, with protein", () => {
+  const grilled = resolve("8 count grilled chicken nuggets", []);
+  assert.match(grilled.items[0].name, /grilled nuggets/);
+  near(grilled.total, 130);
+  assert.ok(grilled.items[0].macros.protein > 22);
+  near(resolve("chick fil a 8 count grilled nuggets", []).total, 130);
+  const fried = resolve("chick fil a 8 count nuggets", []);
+  assert.match(fried.items[0].name, /CHICK-FIL-A, nuggets/);
+  near(fried.total, 250);
+  assert.match(resolve("5oz green beans seasoned", []).items[0].name, /green beans/i);
+});

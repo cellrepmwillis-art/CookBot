@@ -277,6 +277,10 @@ export function correctTypos(query) {
   if (/\b(tenders?|strips?|fingers?)\b/i.test(query) && !/\b(chicken|beef|steak|sirloin|pork|turkey|fish|bacon|fruit|cheese|pepper|tofu|veggie)\b/i.test(query)) {
     query = query.replace(/\b(tenders?|strips?|fingers?)\b/i, "chicken $1");
   }
+  // "Seasoned green beans" are green beans (not a product named "seasoned").
+  query = query.replace(/\bseasoned\b(?!\s+(?:fries|salt|croutons|bread ?crumbs|rice))/gi, " ");
+  // Grilled nuggets are Chick-fil-A's ("8 count grilled chicken nuggets").
+  query = query.replace(/\bgrilled\s+(?:chicken\s+)?nuggets?\b/gi, "chick-fil-a grilled nuggets").replace(/\b(chick[\s-]?fil[\s-]?a\s+)+(?=chick-fil-a grilled)/gi, "");
   // The yogurt brand, not two of something.
   query = query.replace(/\btwo\s+good\b/gi, "twogood");
   // "2 percent milk", "two percent", "1 %": the milkfat, not a count.

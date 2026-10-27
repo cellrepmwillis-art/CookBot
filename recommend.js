@@ -96,8 +96,9 @@ export function recommend({ remaining, hour, eaten = { protein: 0, carbs: 0, fat
   const budget = late ? Math.min(remaining, style.lateMax) : (remaining / MEALS_LEFT[slot]) * style.budget;
   const had = labels.join(" ").toLowerCase();
 
+  // A small budget at any time of day fits a snack.
   const fits = ([, cal, , carbs, , when, kinds]) =>
-    when.includes(slot) && cal <= Math.max(budget * 1.25, 100) && cal <= remaining &&
+    (when.includes(slot) || (budget < 250 && when.includes("s"))) && cal <= Math.max(budget * 1.25, 100) && cal <= remaining &&
     !(rules.without && [...kinds].some((k) => rules.without.includes(k))) &&
     !(rules.maxCarbs != null && carbs > rules.maxCarbs);
   const scored = CHOICES.filter(fits)
