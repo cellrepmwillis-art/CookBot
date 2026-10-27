@@ -99,7 +99,6 @@ COMMON = {
 EXTRA_PORTIONS = {
     "Peanuts, all types, dry-roasted, with salt": [["1 oz (about 28 peanuts)", 28.4]],
     "Snacks, pretzels, hard, plain, salted": [["1 oz (about 5 twists)", 28.4]],
-    "Snacks, popcorn, microwave, regular (butter) flavor, made with partially hydrogenated oil": [["1 serving (3 cups popped)", 24]],
     "Snacks, potato chips, plain, salted": [["1 oz (about 15 chips)", 28]],
     "Sweet potato, cooked, baked in skin, flesh, without salt (Sweetpotato)": [["1 medium", 150]],
     "Beef, top sirloin, steak, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, broiled (URMIS #2237, Sirloin steak, Sirloin strip)": [["1 steak (6 oz cooked)", 170]],
@@ -121,7 +120,7 @@ EXTRA_PORTIONS = {
     "Water, bottled, generic": [["1 bottle (16.9 fl oz)", 500]],
 }
 # A plain "steak", "vegetables" or "salmon" means these.
-FIRST_CHOICE = {"Grapes, red or green (European type, such as Thompson seedless), raw", "Peanuts, all types, dry-roasted, with salt", "Snacks, pretzels, hard, plain, salted", "Snacks, popcorn, microwave, regular (butter) flavor, made with partially hydrogenated oil", "Snacks, potato chips, plain, salted", "Nuts, almonds", "Sweet potato, cooked, baked in skin, flesh, without salt (Sweetpotato)", "Beef, top sirloin, steak, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, broiled (URMIS #2237, Sirloin steak, Sirloin strip)", "Vegetables, mixed, frozen, cooked, boiled, drained, without salt", "Fish, salmon, Atlantic, farmed, cooked, dry heat", "Beverages, coffee, brewed, prepared with tap water", "Rice, white, long-grain, regular, enriched, cooked", "Chicken, broilers or fryers, breast, meat only, cooked, roasted"}
+FIRST_CHOICE = {"Cereals, corn grits, white, regular and quick, enriched, cooked with water, with salt", "Grapes, red or green (European type, such as Thompson seedless), raw", "Peanuts, all types, dry-roasted, with salt", "Snacks, pretzels, hard, plain, salted", "Snacks, potato chips, plain, salted", "Nuts, almonds", "Sweet potato, cooked, baked in skin, flesh, without salt (Sweetpotato)", "Beef, top sirloin, steak, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, broiled (URMIS #2237, Sirloin steak, Sirloin strip)", "Vegetables, mixed, frozen, cooked, boiled, drained, without salt", "Fish, salmon, Atlantic, farmed, cooked, dry heat", "Beverages, coffee, brewed, prepared with tap water", "Rice, white, long-grain, regular, enriched, cooked", "Chicken, broilers or fryers, breast, meat only, cooked, roasted"}
 
 # Clearer names where USDA's are hard to tell apart.
 RENAME = {
@@ -224,6 +223,10 @@ def lattes(kcal_of):
     # figures over the years (480 to 520 cal).
     foods.append(["McDONALD'S, McRIB", 240, [["1 sandwich", 208]], 0])
     macros_of["McDONALD'S, McRIB"] = (11.1, 21.2, 11.5)
+    # Ranked first only when "popcorn" is typed: plain "butter" isn't butter-flavored popcorn.
+    popcorn = "Snacks, popcorn, microwave, regular (butter) flavor, made with partially hydrogenated oil"
+    foods.append(["Popcorn, microwave, butter flavor", kcal_of[popcorn], [["1 serving (3 cups popped)", 24], ["1 cup", 7.9], ["1 bag", 87]], 3])
+    macros_of["Popcorn, microwave, butter flavor"] = macros_of[popcorn]
     almond = "Beverages, almond milk, unsweetened, shelf stable"
     foods.append(["Almond milk, unsweetened", kcal_of[almond], [["1 cup (8 fl oz)", 240]], 3])
     macros_of["Almond milk, unsweetened"] = macros_of[almond]

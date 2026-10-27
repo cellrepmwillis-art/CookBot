@@ -337,3 +337,13 @@ test("combo meals: sandwich, fries and a soda; other meals stay food", () => {
   assert.equal(resolve("cracker meal", []).items.length, 1);
   assert.equal(resolve("oatmeal", []).items.length, 1);
 });
+
+test("grits are cooked grits; butter is butter", () => {
+  const grits = resolve("one cup grits", []);
+  assert.match(grits.items[0].name, /cooked/);
+  assert.ok(grits.total > 150 && grits.total < 200, String(grits.total));
+  const buttered = resolve("one cup grits with butter", []);
+  assert.match(buttered.items[1].name, /^Butter/);
+  assert.match(resolve("butter", []).items[0].name, /^Butter/);
+  assert.match(resolve("popcorn", []).items[0].name, /^Popcorn/);
+});
