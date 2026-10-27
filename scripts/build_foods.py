@@ -124,6 +124,8 @@ FIRST_CHOICE = {"Cereals, corn grits, white, regular and quick, enriched, cooked
 
 # Clearer names where USDA's are hard to tell apart.
 RENAME = {
+    # Not "Sirloin strip": "4 strips" or "tenders" are chicken.
+    'Beef, top sirloin, steak, separable lean and fat, trimmed to 1/8" fat, choice, cooked, broiled (URMIS #2237, Sirloin steak, Sirloin strip)': "Beef, top sirloin steak, cooked, broiled",
     "Chicken, broiler, rotisserie, BBQ, breast meat and skin": "Chicken, rotisserie, breast with skin",
     "Chicken, broiler, rotisserie, BBQ, breast meat only": "Chicken, rotisserie, breast, skinless (meat only)",
 }

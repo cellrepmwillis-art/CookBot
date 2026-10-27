@@ -347,3 +347,19 @@ test("grits are cooked grits; butter is butter", () => {
   assert.match(resolve("butter", []).items[0].name, /^Butter/);
   assert.match(resolve("popcorn", []).items[0].name, /^Popcorn/);
 });
+
+test("plain tenders and strips are chicken", () => {
+  for (const q of ["4 tenders", "3 strips", "kfc 3 strips"]) assert.match(resolve(q, []).items[0].name, /chicken|strips|tenders/i, q);
+  assert.doesNotMatch(resolve("4 tenders", []).items[0].name, /beef|fruit/i);
+});
+
+test("health yogurts: brands, flavors with \"and\", accents and possessives", () => {
+  assert.match(resolve("siggi mixed berries and acai", []).items[0].name, /siggi's Mixed Berries & Açai/);
+  assert.equal(resolve("siggi mixed berries and acai", []).items.length, 1);
+  assert.match(resolve("siggis vanilla", []).items[0].name, /siggi/i);
+  assert.match(resolve("two good vanilla", []).items[0].name, /Two Good/);
+  assert.match(resolve("light and fit greek", []).items[0].name, /Light \+ Fit/);
+  assert.doesNotMatch(resolve("chobani vanilla", []).items[0].name, /oat/i);
+  assert.equal(resolve("chicken and rice", []).items.length, 1);
+  assert.equal(resolve("big mac and fries", []).items.length, 2);
+});

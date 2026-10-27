@@ -1,4 +1,4 @@
-import { searchFoods, closestFoods, findFood, portionsFor, extraWords, namesFood } from "./foods.js";
+import { searchFoods, closestFoods, findFood, portionsFor, extraWords, namesFood, namesBrand } from "./foods.js";
 import { parseQuery, applyModifiers } from "./modifiers.js";
 
 // Turns what someone typed into food choices, each with a plan saying how
@@ -198,8 +198,13 @@ export function lookupMeal(query, limit = 25) {
   // A list stays whole only when it's a food's actual name ("macaroni and cheese").
   // "steak and vegetables" isn't a vegetable beef soup: a listed name with
   // several words that weren't typed is a different food.
-  const listedWhole = single.how === "exact" && (isCurated(single.results[0]?.food ?? []) || extraWords(query, single.results[0].food) <= 2);
+  const listedWhole = single.how === "exact" && single.results.length > 0 && (isCurated(single.results[0].food) || extraWords(query, single.results[0].food) <= 2);
   if (single.results.length && (listed ? listedWhole : !single.unmatched.length)) return { single };
+  // A brand's flavor with "and" in it: "siggi mixed berries and acai".
+  if (listed && namesBrand(query)) {
+    const merged = lookup(query.replace(/\s*(?:\band\b|\s&\s|\+)\s*/gi, " "), limit);
+    if (merged.how === "exact" && merged.results.length && typeof merged.results[0].food[4] === "string") return { single: merged };
+  }
   let texts = query.split(SEPARATOR).map((t) => t.trim()).filter(Boolean);
   // "salad with olive oil", "toast with butter": when the whole phrase isn't a
   // food, "with" adds one. ("latte with oat milk" matches whole, so it stays.)

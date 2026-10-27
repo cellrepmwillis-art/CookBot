@@ -64,7 +64,7 @@ function consensusItem(group, text) {
   const kids = /\bkids?'?\b/i.test(text);
   // Raw or meatless versions only when asked for: "chicken tenders" are cooked chicken.
   // Sugar-free, diet and light versions too: a "red bull" is the regular one.
-  const unusual = /\b(double|triple|raw|uncooked|unprepared|dry mix|meatless|chicken-free|meat-free|plant-based|vegan|sugar[- ]?free|sugarfree|zero|diet|light|lite|sf|quorn|gardein|morningstar|beyond|impossible|tofurky)\b/i;
+  const unusual = /\b(double|triple|oatmilk|almondmilk|coconutmilk|dairy[- ]free|non[- ]?dairy|raw|uncooked|unprepared|dry mix|meatless|chicken-free|meat-free|plant-based|vegan|sugar[- ]?free|sugarfree|zero|diet|light|lite|sf|quorn|gardein|morningstar|beyond|impossible|tofurky)\b/i;
   const askedUnusual = unusual.test(text);
   // "lactaid milk" is plain milk, not its chocolate or protein milk.
   const plainMilk = /\bmilk\b/i.test(text) && !FLAVORED_MILK.test(text);

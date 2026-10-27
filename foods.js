@@ -10,6 +10,7 @@
 // Everyday words that USDA names differently.
 const SYNONYMS = {
   halfnhalf: "half and half",
+  twogood: "two good",
   "mc rib": "mcrib",
   coke: "cola",
   pepsi: "cola",
@@ -123,12 +124,14 @@ let foods = null;
 let index = null;
 
 // "Fat free", "nonfat" and "skim" are the same milk ("nonfat" stands for all three).
-const words = (text) => text.toLowerCase().replace(/\b(?:fat[\s-]+free|non[\s-]+fat)\b/g, "nonfat").replace(/[^a-z0-9%]+/g, " ").trim().split(" ").filter(Boolean);
+// Accents dropped: "Açaí" is "acai", "Crème" is "creme".
+const words = (text) => text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/['’]s\b/g, "").replace(/\b(?:fat[\s-]+free|non[\s-]+fat)\b/g, "nonfat").replace(/[^a-z0-9%]+/g, " ").trim().split(" ").filter(Boolean);
 // "no" and "without" mean the same thing in USDA names ("WHOPPER, no cheese").
 const normalizedWords = (text) => words(text).map((w) => (w === "no" ? "without" : w));
 let byName = null;
 let byBarcode = null;
 let vocabulary = null; // word -> how many food names use it, for typo correction
+let plainWords = null; // words in USDA's and the app's own names (not brands)
 
 export function setFoods(list) {
   foods = [];
@@ -136,6 +139,7 @@ export function setFoods(list) {
   byName = new Map();
   byBarcode = new Map();
   vocabulary = new Map(KNOWN_WORDS.map((w) => [w, 1000]));
+  plainWords = new Set(KNOWN_WORDS);
   addFoods(list);
 }
 
@@ -151,6 +155,7 @@ export function addFoods(list) {
     // USDA's names (no barcodes) are edited, so their words are trusted spellings.
     const weight = typeof food[4] !== "string" ? TRUSTED_COUNT : 1;
     for (const w of words(food[0])) if (w.length >= 3 && !/\d/.test(w)) vocabulary.set(w, (vocabulary.get(w) ?? 0) + weight);
+    if (typeof food[4] !== "string" && food[5] !== "mine") for (const w of words(food[0])) plainWords.add(w);
     const firstSegment = normalizedWords(food[0].split(",")[0]);
     index.push({ words: normalizedWords(food[0]), firstSegment, required: firstSegment.filter((w) => !IGNORED.has(w) && w !== "without") });
     byName.set(food[0], food);
@@ -268,6 +273,12 @@ export function correctTypos(query) {
   }
   // Candy sizes: "fun size" and "snack size" are the small ones, "king size" the large.
   query = query.replace(/\b(?:fun|snack)[\s-]?size[ds]?\b/gi, "small").replace(/\bking[\s-]?size[ds]?\b/gi, "large");
+  // Plain "tenders", "strips" or "fingers" are chicken ("4 tenders", "kfc 3 strips").
+  if (/\b(tenders?|strips?|fingers?)\b/i.test(query) && !/\b(chicken|beef|steak|sirloin|pork|turkey|fish|bacon|fruit|cheese|pepper|tofu|veggie)\b/i.test(query)) {
+    query = query.replace(/\b(tenders?|strips?|fingers?)\b/i, "chicken $1");
+  }
+  // The yogurt brand, not two of something.
+  query = query.replace(/\btwo\s+good\b/gi, "twogood");
   // "2 percent milk", "two percent", "1 %": the milkfat, not a count.
   query = query.replace(/\b(1|2|one|two)\s*(?:%|percent|per cent|pct)(?![a-z])/gi, (_, n) => `${{ one: 1, two: 2 }[n.toLowerCase()] ?? n}%`);
   // "milk with calcium", "OJ with added vitamin D": what's added to it, not a
@@ -275,6 +286,9 @@ export function correctTypos(query) {
   query = query.replace(/\b(?:with|w\/|plus|and)\s+(?:added\s+|extra\s+)?(?:calcium|vitamins?(?:\s+[a-e]\d?)?(?:\s*(?:&|and)\s*[a-e]\d?)?|d3|iron|fiber|fibre|omega[- ]?3s?|probiotics?|dha|electrolytes|lactase)\b/gi, " ");
   return query.replace(/[a-z]+/gi, (w) => {
     const word = w.toLowerCase();
+    // "siggis", "wendys": a brand's possessive typed without the apostrophe.
+    const brand = word.slice(0, -1);
+    if (/s$/.test(word) && !vocabulary.has(word) && !plainWords.has(brand) && (vocabulary.get(brand) ?? 0) >= 2) return brand;
     // Not a plural of a known word: "butterfingers" isn't "butter fingers".
     const singular = word.replace(/e?s$/, "");
     if (word.length >= 6 && (vocabulary.get(word) ?? 0) < TRUSTED_COUNT && (vocabulary.get(singular) ?? 0) < TRUSTED_COUNT) {
@@ -284,6 +298,12 @@ export function correctTypos(query) {
     const fixed = correctWord(word);
     return fixed === word ? w : fixed;
   });
+}
+
+// Whether a search names a brand: a word only packaged products use
+// ("siggi", "chobani"), so "siggi mixed berries and acai" is one product.
+export function namesBrand(query) {
+  return words(query).some((w) => w.length >= 3 && !plainWords?.has(w) && !plainWords?.has(w.replace(/'?s$/, "")) && (vocabulary.get(w) ?? 0) >= 2);
 }
 
 // keys: from barcodeKeys() in barcode.js.
