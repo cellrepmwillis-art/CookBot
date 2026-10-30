@@ -237,6 +237,14 @@ def lattes(kcal_of):
     # carbs and 11 g fat in about 113 g.
     foods.append(["CHICK-FIL-A, nuggets", 221, [["8 count (113 g)", 113], ["12 count (170 g)", 170], ["1 nugget", 14]], 0])
     macros_of["CHICK-FIL-A, nuggets"] = (23.9, 9.7, 9.7)
+    # Bojangles' Bo-Tato Rounds (tater tots): small about 260 cal, medium
+    # about 380, picnic about 630, from published menu figures.
+    foods.append(["Bo-Tato Rounds, Bojangles (tater rounds)", 270, [["Small", 96], ["Medium", 141], ["Picnic (large)", 233]], 1])
+    macros_of["Bo-Tato Rounds, Bojangles (tater rounds)"] = (3.1, 28.1, 16.7)
+    # A restaurant biscuit (Bojangles, Hardee's, KFC): about 310 cal.
+    recipe = "Biscuits, plain or buttermilk, prepared from recipe"
+    foods.append(["Fast foods, biscuit, plain", 365, [["1 biscuit", 85]], 1])
+    macros_of["Fast foods, biscuit, plain"] = macros_of[recipe]
     almond = "Beverages, almond milk, unsweetened, shelf stable"
     foods.append(["Almond milk, unsweetened", kcal_of[almond], [["1 cup (8 fl oz)", 240]], 3])
     macros_of["Almond milk, unsweetened"] = macros_of[almond]

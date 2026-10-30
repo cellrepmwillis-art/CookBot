@@ -10,6 +10,10 @@
 // Everyday words that USDA names differently.
 const SYNONYMS = {
   halfnhalf: "half and half",
+  "bo rounds": "bo tato rounds",
+  "bo-rounds": "bo tato rounds",
+  "bo-tato": "bo tato",
+  botato: "bo tato",
   twogood: "two good",
   "mc rib": "mcrib",
   coke: "cola",

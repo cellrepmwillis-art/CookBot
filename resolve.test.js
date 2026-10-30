@@ -375,3 +375,12 @@ test("chick-fil-a nuggets, grilled or not, with protein", () => {
   near(fried.total, 250);
   assert.match(resolve("5oz green beans seasoned", []).items[0].name, /green beans/i);
 });
+
+test("Bojangles Bo-Tato Rounds and a restaurant biscuit", () => {
+  for (const q of ["bo rounds", "bojangles bo rounds", "bojangles bo-rounds", "bo tato rounds"]) near(resolve(q, []).total, 259);
+  near(resolve("half serving of bojangles bo rounds", []).total, 130);
+  assert.ok(resolve("medium bo rounds", []).total > 350);
+  near(resolve("bojangles plain biscuit", []).total, 310);
+  near(resolve("bojangles biscuit", []).total, 310);
+  assert.doesNotMatch(resolve("plain biscuit", []).items[0].name, /digestive/i);
+});
