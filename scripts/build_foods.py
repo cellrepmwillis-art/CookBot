@@ -295,6 +295,7 @@ MEALS = [
     # The classic cracker stacker (and store-brand copies): about 3.1 oz.
     ("Lunchables, turkey and cheddar (or American) with crackers", "1 package (3.1 oz)", [("Turkey breast, sliced, prepackaged", 34), (CHEDDAR, 28), ("Crackers, standard snack-type, regular", 25)]),
     ("Lunchables, ham and cheddar (or American) with crackers", "1 package (3.1 oz)", [("Ham, sliced, regular (approximately 11% fat)", 34), (CHEDDAR, 28), ("Crackers, standard snack-type, regular", 25)]),
+    ("Fish and chips", "1 order (5 oz fried fish, medium fries)", [("Fish, catfish, channel, cooked, breaded and fried", 70), ("Fish, croaker, Atlantic, cooked, breaded and fried", 70), ("Fast foods, potato, french fried in vegetable oil", 117)]),
     ("Salad, garden", "1 bowl, no dressing", SALAD),
     ("Salad, garden, with ranch", "1 bowl, 2 tbsp ranch", SALAD + [(RANCH, 30)]),
     ("Salad, grilled chicken, with ranch", "1 bowl, 3 oz chicken, 2 tbsp ranch", SALAD + [(CHICKEN, 85), (RANCH, 30)]),

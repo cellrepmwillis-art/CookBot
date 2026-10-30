@@ -392,3 +392,11 @@ test("slices of a pizza whose label gives the whole pizza", () => {
   assert.ok(resolve("four slices deep dish bbq chicken pizza", []).total < 1600);
   near(resolve("2 glasses milk", []).total, 2 * resolve("glass of milk", []).total);
 });
+
+test("products with \"and\" in their name stay one product; meals still split", () => {
+  const burrito = resolve("el Monterey beef and bean burrito", []);
+  assert.equal(burrito.items.length, 1);
+  assert.match(burrito.items[0].name, /El Monterey Beef & Bean/);
+  assert.equal(resolve("burger and fries", []).items.length, 2);
+  assert.match(resolve("fish and chips", []).items[0].name, /^Fish and chips/);
+});

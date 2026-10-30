@@ -220,10 +220,13 @@ export function lookupMeal(query, limit = 25) {
   // several words that weren't typed is a different food.
   const listedWhole = single.how === "exact" && single.results.length > 0 && (isCurated(single.results[0].food) || extraWords(query, single.results[0].food) <= 2);
   if (single.results.length && (listed ? listedWhole : !single.unmatched.length)) return { single };
-  // A brand's flavor with "and" in it: "siggi mixed berries and acai".
-  if (listed && namesBrand(query)) {
+  // A product with "and" in its name: "siggi mixed berries and acai", "el
+  // monterey beef and bean burrito" ("Beef & Bean Burritos"). With a brand
+  // named, or when the product's name is just what was typed.
+  if (listed) {
     const merged = lookup(query.replace(/\s*(?:\band\b|\s&\s|\+)\s*/gi, " "), limit);
-    if (merged.how === "exact" && merged.results.length && typeof merged.results[0].food[4] === "string") return { single: merged };
+    const top = merged.results[0]?.food;
+    if (merged.how === "exact" && top && typeof top[4] === "string" && (namesBrand(query) || extraWords(query, top) === 0)) return { single: merged };
   }
   let texts = query.split(SEPARATOR).map((t) => t.trim()).filter(Boolean);
   // "salad with olive oil", "toast with butter": when the whole phrase isn't a
