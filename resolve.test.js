@@ -400,3 +400,10 @@ test("products with \"and\" in their name stay one product; meals still split", 
   assert.equal(resolve("burger and fries", []).items.length, 2);
   assert.match(resolve("fish and chips", []).items[0].name, /^Fish and chips/);
 });
+
+test("servings are the usual serving: three servings of doritos", () => {
+  const one = resolve("doritos", []).total;
+  near(resolve("three servings doritos", []).total, 3 * one);
+  near(resolve("1 serving doritos", []).total, one);
+  assert.ok(one > 130 && one < 170, String(one));
+});

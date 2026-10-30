@@ -141,6 +141,11 @@ export function parseQuery(query) {
     // Singular: "slices" is "slice", "glasses" "glass", "patties" "patty".
     unit = measure[1].replace(/ies$|(?<=ss|sh|ch|x)es$|(?<!s)s$/, (end) => (end === "ies" ? "y" : "")).replace(/^tablespoon$/, "tbsp").replace(/^teaspoon$/, "tsp");
     q = q.slice(measure.index + measure[0].length);
+    // "3 servings of doritos" is three of the usual serving, whatever its label says.
+    if (unit === "serving") {
+      unit = null;
+      counted = false;
+    }
     q = q.replace(/^\s*of\b/, " ");
   }
   // "a drizzle of olive oil", "a splash of milk": everyday amounts.
