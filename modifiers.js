@@ -138,7 +138,8 @@ export function parseQuery(query) {
   const measure = q.match(new RegExp(`^\\s*(${HOUSEHOLD})\\b`));
   if (measure) {
     counted = true;
-    unit = measure[1].replace(/(es|s)$/, "").replace(/^tablespoon$/, "tbsp").replace(/^teaspoon$/, "tsp");
+    // Singular: "slices" is "slice", "glasses" "glass", "patties" "patty".
+    unit = measure[1].replace(/ies$|(?<=ss|sh|ch|x)es$|(?<!s)s$/, (end) => (end === "ies" ? "y" : "")).replace(/^tablespoon$/, "tbsp").replace(/^teaspoon$/, "tsp");
     q = q.slice(measure.index + measure[0].length);
     q = q.replace(/^\s*of\b/, " ");
   }

@@ -384,3 +384,11 @@ test("Bojangles Bo-Tato Rounds and a restaurant biscuit", () => {
   near(resolve("bojangles biscuit", []).total, 310);
   assert.doesNotMatch(resolve("plain biscuit", []).items[0].name, /digestive/i);
 });
+
+test("slices of a pizza whose label gives the whole pizza", () => {
+  const four = resolve("4 slices bbq chicken pizza", []).total;
+  assert.ok(four > 650 && four < 1300, String(four));
+  assert.ok(resolve("four slices deep dish bbq chicken pizza", []).total > four);
+  assert.ok(resolve("four slices deep dish bbq chicken pizza", []).total < 1600);
+  near(resolve("2 glasses milk", []).total, 2 * resolve("glass of milk", []).total);
+});

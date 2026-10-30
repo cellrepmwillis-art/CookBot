@@ -23,7 +23,7 @@ function candySize(food, size, labels) {
   return null;
 }
 
-function withSize(plan, size, measure, unit) {
+function withSize(plan, size, measure, unit, deep = false) {
   if (plan.portion) return plan;
   const labels = portionsFor(plan.food);
   const candy = !unit && !measure && size && candySize(plan.food, size, labels);
@@ -31,6 +31,7 @@ function withSize(plan, size, measure, unit) {
   const portion =
     (unit && perUnit(labels, unit)) ||
     (unit === "handful" && handful(plan.food)) ||
+    (unit === "slice" && pizzaSlice(labels, deep)) ||
     (measure && labels.find((p) => new RegExp(`(?<![\\d.])${measure[1].replace(".", "\\.")}\\s*-?\\s*(?:fl\\.?\\s*)?${measure[2].slice(0, 2)}`, "i").test(p.label))) ||
     (measure && /^o/i.test(measure[2]) && ounces(labels, Number(measure[1]))) ||
     (size && labels.find((p) => SIZE_LABELS[size].some((w) => new RegExp(`\\b${w}\\b`, "i").test(p.label))));
@@ -45,6 +46,23 @@ function handful(food) {
   const airy = /popcorn|puffs?\b|cheetos|rice cakes?/i.test(food[0]);
   const grams = airy ? 10 : food[1] >= 300 ? 28 : food[1] >= 150 ? 40 : 75;
   return { label: `1 handful (about ${grams} g)`, grams };
+}
+
+// "4 slices bbq chicken pizza" when the label only gives the whole pizza
+// ("1 pizza (369 g)", "0.333 pizza (139 g)"): about a sixth of it, between
+// a thin 90 g slice and a thick 150 g one (220 g for deep dish, whose
+// whole pizza already weighs more).
+function pizzaSlice(labels, deep) {
+  for (const p of labels) {
+    const m = p.label.match(/^(\d*\.?\d+)\s*pizzas?\b/i);
+    if (!m || !(Number(m[1]) > 0)) continue;
+    const whole = p.grams / Number(m[1]);
+    if (whole < 300) return null; // a personal or mini pizza isn't sliced
+    // A deep dish slice of a pizza only listed in a thin version: about 40% more.
+    const grams = Math.min(deep ? 220 : 150, Math.max(90, whole / 6)) * (deep && whole < 600 ? 1.4 : 1);
+    return { label: `1 slice (about ${Math.round(grams)} g)`, grams };
+  }
+  return null;
 }
 
 // "8 oz" when no label says so: fluid ounces for drinks, weight otherwise.
@@ -114,10 +132,12 @@ function withCount(plan, countNoun) {
   return { ...plan, portion, countable: true };
 }
 
+const DEEP = /\b(deep[\s-]?dish|pan|thick[\s-]?crust|detroit|chicago)\b/i;
+
 export function lookup(query, limit = 25) {
   const parsed = lookupSized(query, limit);
   const size = query.match(SIZE)?.[1].toLowerCase();
-  const results = parsed.results.map((plan) => withSize(plan, size, query.match(MEASURE), parsed.unit)).map((plan) => (parsed.counted ? withCount(plan, parsed.countNoun) : plan));
+  const results = parsed.results.map((plan) => withSize(plan, size, query.match(MEASURE), parsed.unit, DEEP.test(query))).map((plan) => (parsed.counted && !parsed.unit ? withCount(plan, parsed.countNoun) : plan));
   return { ...parsed, results, size };
 }
 
